@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>专辑管理员</title>
+  <style>
+    .el-header {
+      background-color: #B3C0D1;
+      color: #333;
+      line-height: 60px;
+    }
+
+    .el-aside {
+      color: #333;
+    }
+    .el-upload-list__item-name{
+      height: 30px;
+    }
+    .input-wrapper {
+      width: 300px;
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <el-container style="height: 700px; border: 1px solid #eee">
+    <el-aside width="200px" style="height: 700px; background-color: rgb(238, 241, 246)">
+      <el-menu :default-openeds="['5']" @select="handleSelect">
+        <el-submenu index="5">
+          <template slot="title"><i class="el-icon-headset"></i>音乐处理</template>
+          <el-menu-item-group>
+            <template slot="title">音乐信息管理</template>
+            <el-menu-item index="2">专辑管理</el-menu-item>
+            <el-menu-item index="3">歌曲管理</el-menu-item>
+            <el-menu-item index="6">评论管理</el-menu-item>
+          </el-menu-item-group>
+        </el-submenu>
+      </el-menu>
+    </el-aside>
+
+    <el-container style="height: 700px">
+      <el-header style="text-align: right; font-size: 14px">
+        <el-dropdown>
+          <i class="el-icon-setting" style="margin-right: 15px; font-size: 20px"></i>
+          <el-dropdown-menu slot="dropdown">
+            <div @click="quit">
+              <el-dropdown-item>退出系统</el-dropdown-item>
+            </div>
+          </el-dropdown-menu>
+        </el-dropdown>
+        <span>设置</span>
+      </el-header>
+
+      <el-main v-if="selected == 2">
+        <!--搜索表单-->
+        <el-form :inline="true" class="demo-form-inline">
+          <el-form-item label="专辑信息：">
+            <el-input v-model="selectImfor" placeholder="请输入关键词"></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="search" round>查询</el-button>
+          </el-form-item>
+        </el-form>
+        <!--按钮-->
+        <el-row>
+          <el-button type="danger" plain @click="deleteAlbumByIds" round>批量删除</el-button>
+          <el-button type="primary" plain @click="AddAlbumdialogVisible = true" round>新增</el-button>
+        </el-row>
+        <!--添加数据对话框表单-->
+        <el-dialog
+                title="编辑专辑信息"
+                :visible.sync="AddAlbumdialogVisible"
+                width="30%"
+        >
+          <el-form ref="form2" :model="addalbumUse" label-width="80px">
+            <el-form-item label="专辑名称" prop="name">
+              <el-input v-model="addalbumUse.alb_name"></el-input>
+            </el-form-item>
+
+            <el-form-item label="歌手名称" prop="sId">
+              <el-select v-model="addalbumUse.sin_id">
+                <el-option
+                        v-for="singer in AllSingerName"
+                        :key="singer.sin_id"
+                        :label="singer.sin_name"
+                        :value="singer.sin_id"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="发行时间" prop="time">
+              <el-date-picker
+                      v-model="addalbumUse.alb_time"
+                      type="date"
+                      placeholder="选择日期"
+                      @change="formatDate"
+              ></el-date-picker>
+            </el-form-item>
+
+            <el-form-item label="流派" prop="style">
+              <el-select v-model="addalbumUse.style" placeholder="请选择流派">
+                <el-option label="经典" value="经典"></el-option>
+                <el-option label="流行" value="流行"></el-option>
+                <el-option label="摇滚" value="摇滚"></el-option>
+                <el-option label="民谣" value="民谣"></el-option>
+                <el-option label="电子" value="电子"></el-option>
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="曲目数量" prop="number">
+              <el-input v-model="addalbumUse.sin_number"></el-input>
+            </el-form-item>
+            <el-form-item label="专辑数量" prop="number">
+              <el-input v-model="addalbumUse.number"></el-input>
+            </el-form-item>
+
+            <el-form-item label="发行公司" prop="company">
+              <el-input v-model="addalbumUse.company"></el-input>
+            </el-form-item>
+
+            <el-form-item label="语言" prop="language">
+              <el-input v-model="addalbumUse.language"></el-input>
+            </el-form-item>
+
+            <el-form-item label="价格">
+              <el-input v-model="addalbumUse.price"></el-input>
+            </el-form-item>
+            <el-form-item label="介质">
+              <el-select v-model="addalbumUse.medium" placeholder="请选择介质">
+                <el-option label="CD" value="CD"></el-option>
+                <el-option label="黑胶" value="黑胶"></el-option>
+                <el-option label="数字" value="数字"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="简介" prop="summary">
+              <el-input type="textarea" v-model="addalbumUse.summary"></el-input>
+            </el-form-item>
+
+            <el-form-item>
+              <el-button type="primary" @click="addAlbum('form2')">提交</el-button>
+              <el-button @click="closeAddAlbumdialogVisible('form2')">取消</el-button>
+            </el-form-item>
+          </el-form>
+        </el-dialog>
+
+        <!--表格-->
+        <template>
+          <el-table
+                  :data="albumData"
+                  style="width: 100%"
+                  stripe
+                  @selection-change="handleSelectionChange"
+          >
+            <el-table-column
+                    type="selection"
+                    width="55">
+            </el-table-column>
+            <el-table-column
+                    type="index"
+                    width="50">
+            </el-table-column>
+
+            <el-table-column
+                    prop="alb_name"
+                    label="专辑名称"
+                    align="center"
+            >
+            </el-table-column>
+            <el-table-column
+                    prop="sin_name"
+                    label="歌手名称"
+                    align="center"
+            >
+            </el-table-column>
+            <el-table-column
+                    prop="style"
+                    align="center"
+                    label="流派">
+            </el-table-column>
+            <el-table-column
+                    prop="sin_number"
+                    align="center"
+                    label="曲目数量">
+            </el-table-column>
+            <el-table-column
+                    prop="number"
+                    align="center"
+                    label="专辑数量">
+            </el-table-column>
+            <el-table-column
+                    prop="alb_time"
+                    align="center"
+                    label="发行时间">
+            </el-table-column>
+            <el-table-column
+                    prop="company"
+                    align="center"
+                    label="发行公司">
+            </el-table-column>
+            <el-table-column
+                    prop="language"
+                    align="center"
+                    label="语言">
+            </el-table-column>
+            <el-table-column
+                    prop="price"
+                    align="center"
+                    label="价格">
+            </el-table-column>
+            <el-table-column
+                    prop="medium"
+                    align="center"
+                    label="介质">
+            </el-table-column>
+            <el-table-column
+                    align="center"
+                    label="简介">
+              <template slot-scope="scope"><el-button type="text" @click="showSummaryDialog(scope.row)">详情</el-button><el-dialog
+                      title="简介"
+                      :visible.sync="summarydialogVisible"
+                      width="30%"
+                      :before-close="handleClose">
+                <span>{{ sum }}</span>
+                <span slot="footer" class="dialog-footer">
+                                <el-button type="primary" @click="summarydialogVisible = false">关 闭</el-button>
+                                </span>
+              </el-dialog></template>
+            </el-table-column>
+
+            <el-table-column align="center" width="190px" label="操作">
+              <template slot-scope="scope">
+                <el-button type="primary" @click="AlbumupdateShow(scope.$index, scope.row)" round>修改</el-button>
+                <el-button type="danger" @click="deleteAlbumByChoose(scope.$index, scope.row)" round>删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
+
+        <!--修改数据对话框表单-->
+        <el-dialog
+                title="修改专辑信息"
+                :visible.sync="showAlbumUpdate"
+                width="30%"
+        >
+          <el-form ref="form3" :model="updatealbumUse" label-width="80px">
+            <el-form-item label="专辑名称" prop="name">
+              <el-input v-model="updatealbumUse.alb_name"></el-input>
+            </el-form-item>
+
+            <el-form-item label="歌手名称" :model="updatealbumUse.singerName" prop="sId">
+              <el-select v-model="updatealbumUse.sin_id">
+                <el-option
+                        v-for="singer in AllSingerName"
+                        :key="singer.sin_id"
+                        :label="singer.sin_name"
+                        :value="singer.sin_id">
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="发行时间" prop="time">
+              <el-date-picker
+                      v-model="updatealbumUse.alb_time"
+                      type="date"
+                      placeholder="选择日期"
+                      @change="formatDate">
+              </el-date-picker>
+            </el-form-item>
+            <el-form-item label="流派" prop="style">
+              <el-select v-model="updatealbumUse.style" placeholder="请选择流派">
+                <el-option label="经典" value="经典"></el-option>
+                <el-option label="流行" value="流行"></el-option>
+                <el-option label="摇滚" value="摇滚"></el-option>
+                <el-option label="民谣" value="民谣"></el-option>
+                <el-option label="电子" value="电子"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="曲目数量" prop="number">
+              <el-input v-model="updatealbumUse.sin_number"></el-input>
+            </el-form-item>
+            <el-form-item label="专辑数量" prop="number">
+              <el-input v-model="updatealbumUse.number"></el-input>
+            </el-form-item>
+            <el-form-item label="发行公司" prop="company">
+              <el-input v-model="updatealbumUse.company"></el-input>
+            </el-form-item>
+            <el-form-item label="语言" prop="language">
+              <el-input v-model="updatealbumUse.language"></el-input>
+            </el-form-item>
+            <el-form-item label="介质" prop="style">
+              <el-select v-model="updatealbumUse.medium" placeholder="请选择介质">
+                <el-option label="CD" value="CD"></el-option>
+                <el-option label="黑胶" value="黑胶"></el-option>
+                <el-option label="数字" value="数字"></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="价格" prop="language">
+              <el-input v-model="updatealbumUse.price"></el-input>
+            </el-form-item>
+            <el-form-item label="简介" prop="summary">
+              <el-input type="textarea" v-model="updatealbumUse.summary"></el-input>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" @click="UpdateAlbum('form3')" round>提交</el-button>
+              <el-button @click="showAlbumUpdate = false" round>取消</el-button>
+            </el-form-item>
+          </el-form>
+        </el-dialog>
+
+        <!--分页工具条-->
+        <el-pagination
+                @size-change="handleAlbumSizeChange"
+                @current-change="handleAlbumCurrentChange"
+                :current-page="currentAlbumPage"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="5"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="totalAlbumCount">
+        </el-pagination>
+      </el-main>
+
+      <el-main v-if="selected == 3">
+        <!--搜索表单-->
+        <el-form :inline="true" class="demo-form-inline">
+          <el-form-item label="歌曲信息：">
+            <el-input v-model="selectImfor" placeholder="请输入关键词"></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="search" round>查询</el-button>
+          </el-form-item>
+        </el-form>
+
+        <!--按钮-->
+        <el-row>
+          <el-button type="danger" plain @click="deleteSongByIds" round>批量删除</el-button>
+          <el-button type="primary" plain @click="dialogVisible = true" round>新增</el-button>
+        </el-row>
+        <!--添加数据对话框表单-->
+        <el-dialog
+                title="编辑歌曲信息"
+                :visible.sync="dialogVisible"
+                width="30%"
+        >
+          <el-form ref="form3" :model="addsongUse" label-width="80px">
+            <el-form-item label="歌曲名称" prop="name">
+              <el-input v-model="addsongUse.son_name"></el-input>
+            </el-form-item>
+
+            <el-form-item label="专辑名称" prop="albumId">
+              <el-select v-model="addsongUse.alb_id">
+                <el-option
+                        v-for="album in AllAlbumName"
+                        :key="album.alb_id"
+                        :label="album.alb_name"
+                        :value="album.alb_id">
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="歌曲时长" prop="duration">
+              <el-time-select
+                      v-model="addsongUse.duration"
+                      :picker-options="{
+                                    start: '00:00',
+                                    step: '00:01',
+                                    end: '10:00'
+                                    }"
+                      placeholder="选择时间">
+              </el-time-select>
+            </el-form-item>
+
+            <el-form-item>
+              <el-button type="primary" @click="addSong('form3')">提交</el-button>
+              <el-button @click="closedialogVisible('form3')">取消</el-button>
+            </el-form-item>
+          </el-form>
+        </el-dialog>
+
+        <!--表格-->
+        <template>
+          <el-table
+                  :data="songData"
+                  style="width: 100%"
+                  stripe
+                  @selection-change="handleSelectionChange"
+          >
+            <el-table-column
+                    type="selection"
+                    width="55">
+            </el-table-column>
+            <el-table-column
+                    type="index"
+                    width="50">
+            </el-table-column>
+
+            <el-table-column
+                    prop="son_name"
+                    label="歌曲名称"
+                    align="center"
+            >
+            </el-table-column>
+            <el-table-column
+                    prop="sin_name"
+                    label="歌手名称"
+                    align="center"
+            >
+            </el-table-column>
+            <el-table-column
+                    prop="alb_name"
+                    align="center"
+                    label="专辑名称">
+            </el-table-column>
+            <el-table-column
+                    prop="duration"
+                    align="center"
+                    label="歌曲时长">
+            </el-table-column>
+
+            <el-table-column align="center" label="操作">
+              <template slot-scope="scope" v-if="selected === 3">
+                <el-button type="primary" @click="updateShow(scope.$index, scope.row)" round>修改</el-button>
+                <el-button type="danger" @click="deleteSongByChoose(scope.$index, scope.row)" round>删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
+
+        <!--修改数据对话框表单-->
+        <el-dialog
+                title="修改歌曲信息"
+                :visible.sync="showUpdate"
+                width="30%"
+        >
+          <el-form ref="form3" :model="updatesongUse" label-width="80px">
+            <el-form-item label="歌曲名称" prop="name">
+              <el-input v-model="updatesongUse.son_name"></el-input>
+            </el-form-item>
+
+
+            <el-form-item label="专辑名称" :model="updatesongUse.alb_name" prop="albumId">
+              <el-select v-model="updatesongUse.alb_id">
+                <el-option
+                        v-for="album in AllAlbumName"
+                        :key="album.alb_id"
+                        :label="album.alb_name"
+                        :value="album.alb_id">
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="歌曲时长" prop="duration">
+              <el-time-select
+                      v-model="updatesongUse.duration"
+                      :picker-options="{
+                                    start: '00:00',
+                                    step: '00:01',
+                                    end: '10:00'
+                                    }"
+                      placeholder="选择时间">
+              </el-time-select>
+            </el-form-item>
+
+            <el-form-item>
+              <el-button type="primary" @click="UpdateSong('form3')">提交</el-button>
+              <el-button @click="showUpdate = false">取消</el-button>
+            </el-form-item>
+          </el-form>
+        </el-dialog>
+
+        <!--分页工具条-->
+        <el-pagination
+                @size-change="handleSongSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="currentSongPage"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="5"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="totalSongCount">
+        </el-pagination>
+      </el-main>
+
+      <el-main v-if="selected == 6">
+        <!--搜索表单-->
+        <el-form :inline="true" class="demo-form-inline">
+          <el-form-item label="评论信息：">
+            <el-input v-model="selectImfor" placeholder="请输入关键词"></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="search" round>查询</el-button>
+          </el-form-item>
+        </el-form>
+
+        <el-row>
+          <el-button type="danger" plain @click="deleteComByIds" round>批量删除</el-button>
+          <el-button type="primary" plain @click="ComdialogVisible = true" round>新增</el-button>
+        </el-row>
+
+        <!--添加数据对话框表单-->
+        <el-dialog
+                title="编辑评论信息"
+                :visible.sync="ComdialogVisible"
+                width="30%"
+        >
+          <el-form ref="form6" :model="addcomUse" :rules="rules3" label-width="80px">
+            <el-form-item label="用户编号">
+              <el-input v-model="addcomUse.user_id"></el-input>
+            </el-form-item>
+            <el-form-item label="专辑编号">
+              <el-input v-model="addcomUse.alb_id"></el-input>
+            </el-form-item>
+            <el-form-item label="评分" prop="name">
+              <el-rate
+                      v-model="addcomUse.score"
+                      show-text>
+              </el-rate>
+            </el-form-item>
+            <el-form-item label="评论内容">
+              <el-input type="textarea" v-model="addcomUse.content"></el-input>
+            </el-form-item>
+
+            <el-form-item label="评论时间" prop="time">
+              <el-date-picker
+                      v-model="addcomUse.com_time"
+                      type="date"
+                      placeholder="选择日期"
+                      @change="formatDate"
+              ></el-date-picker>
+            </el-form-item>
+
+            <el-form-item>
+              <el-button type="primary" @click="addCom('form6')">提交</el-button>
+              <el-button @click="closeComdialogVisible('form6')">取消</el-button>
+            </el-form-item>
+          </el-form>
+        </el-dialog>
+
+        <!--表格-->
+        <template>
+          <el-table
+                  :data="CommentData"
+                  style="width: 100%"
+                  stripe
+                  @selection-change="handleSelectionChange"
+          >
+            <el-table-column
+                    type="selection"
+                    width="55">
+            </el-table-column>
+            <el-table-column
+                    type="index"
+                    width="50">
+            </el-table-column>
+
+            <el-table-column
+                    prop="username"
+                    label="评论用户"
+                    align="center"
+            >
+            </el-table-column>
+            <el-table-column
+                    prop="alb_name"
+                    label="评论专辑"
+                    align="center"
+            >
+            </el-table-column>
+            <el-table-column
+                    prop="score"
+                    align="center"
+                    label="评分">
+            </el-table-column>
+            <el-table-column
+                    align="center"
+                    label="评论内容">
+              <template slot-scope="scope" v-if="selected == 6"><el-button type="text" @click="showComDialog(scope.row)">详情</el-button></template>
+            </el-table-column>
+
+            <el-table-column align="center" label="操作">
+              <template slot-scope="scope" v-if="selected === 6">
+                <el-button type="danger" @click="deleteComByChoose(scope.$index, scope.row)" round>删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
+        <el-dialog
+                title="评论内容"
+                :visible.sync="ComShowdialogVisible"
+                width="30%"
+                :before-close="handleClose">
+          <span>{{ comment }}</span>
+          <span slot="footer" class="dialog-footer">
+                                <el-button type="primary" @click="ComShowdialogVisible = false">关 闭</el-button>
+                                </span>
+        </el-dialog>
+        <el-pagination
+                @size-change="handleComSizeChange"
+                @current-change="handleComCurrentChange"
+                :current-page="currentComPage"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="5"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="totalComCount">
+        </el-pagination>
+
+      </el-main>
+
+    </el-container>
+  </el-container>
+</div>
+
+<script src="../js/axios-0.18.0.js"></script>
+<script src="../js/vue.js"></script>
+<!-- 引入样式 -->
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+<!-- 引入组件库 -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+  new Vue({
+    el: "#app",
+    computed: {
+      durationString() {
+        let h = this.addsongUse.duration.getHours();
+        let m = this.addsongUse.duration.getMinutes();
+        let s = this.addsongUse.duration.getSeconds();
+        return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+      }
+
+    },
+    data() {
+      return {
+        rules: {
+          username: [
+            { required: true, message: '账号不能为空', trigger: 'blur' },
+            { min: 1, max: 12, message: '长度在 1 到 12 个字符', trigger: 'blur' }
+          ],
+          password: [
+            { required: true, message: '密码不能为空', trigger: 'blur' },
+            { min: 3, max: 12, message: '长度在 3 到 12 个字符', trigger: 'blur' }
+          ],
+          phone: [
+            { min: 11, max: 11, message: '请输入11位手机号', trigger: 'blur' }
+          ]
+
+        },
+        rules2:{
+          name: [{ required: true, message: "请输入专辑名称", trigger: "blur" }],
+          sId: [{ required: true, message: "请选择歌手名称", trigger: "change" }],
+          time: [{ required: true, message: "请选择发行时间", trigger: "change" }],
+          style: [{ required: true, message: "请输入流派", trigger: "blur" }],
+          number: [{ required: true, message: "请输入曲目数量", trigger: "blur" },
+            { pattern: /^[1-9]\d*$/, message: "只能输入整数", trigger: "blur" }],
+          company: [{required: true, message: "请输入发行公司", trigger: "blur"}],
+          language: [{required: true, message: "请输入语言", trigger: "blur"}],
+          summary: [{required: true, message: "请输入简介", trigger: "blur"}]
+        },
+        rules3:{
+          name:[{ required: true, message: "请输入歌曲名称", trigger: "blur" }],
+          singId:[{ required: true, message: "请选择歌手名称", trigger: "change" }],
+          albumId:[{ required: true, message: "请选择专辑名称", trigger: "change" }],
+          duration:[{ required: true, message: "请选择歌曲时长", trigger: "change" }],
+        },
+        rules4:{
+          name:[{ required: true, message: "请输入歌手名称", trigger: "blur" }],
+          nationality:[{ required: true, message: "请选择歌手国籍", trigger: "change" }],
+          career:[{ required: true, message: "请输入歌手职业", trigger: "blur" }],
+          history: [{ required: true, message: "请输入歌手简介", trigger: "blur" }],
+        },
+        showUserUpdate: false,
+        AddUserdialogVisible: false,
+        AddPurdialogVisible: false,
+        ComdialogVisible: false,
+        updateUserUse:{},
+        userData: [],
+        CommentData:[],
+        adduserUse:{},
+        DetaildialogVisible: false,
+        detailHtml: '',
+        singerData:[],
+        AddSingerdialogVisible: false,
+        addalbumUse:{},
+        addpurUser:{},
+        addcomUse:{},
+        albumData: [],
+        purchaseData:[],
+        summarydialogVisible: false,
+        addressdialogVisible: false,
+        selected: 2,
+        AllSingerName: {},
+        AllAlbumName: {},
+        value: '',
+        selectImfor: '',
+        //点击删除时获得的那一列的数据
+        //总记录数
+        totalSongCount:100,
+        totalAlbumCount:100,
+        totalSingerCount:100,
+        totalUserCount:100,
+        // 当前页码
+        currentSongPage: 1,
+        currentAlbumPage: 1,
+        currentSingerPage: 1,
+        currentUserPage: 1,
+        currentComPage: 1,
+        //一页显示几条
+        pageSongSize:5,
+        pageAlbumSize:5,
+        pageSingerSize:5,
+        pageUserSize: 5,
+        pageComSize: 5,
+        // 添加数据对话框是否展示的标记
+        dialogVisible: false,
+        // 修改某条数据时是否展示数据详情页的标记
+        showUpdate: false,
+        showAlbumUpdate: false,
+        showSingerUpdate: false,
+        // 歌曲模型数据
+        song: {},
+        //新增歌曲用的数据：
+        addsongUse: {},
+        addsingerUse: {},
+        //修改专辑用的数据：
+        updatealbumUse:{},
+        //修改歌曲用的数据：
+        updatesongUse: {},
+        //修改歌手用的数据：
+        updatesingerUse: {},
+        //被批量选择选中的id们
+        selectIds:[],
+        // 复选框选中数据集合
+        multipleSelection: [],
+        // 表格数据
+        songData: [],
+        sum:'',
+        AddAlbumdialogVisible:false,
+        row: {},
+        comment:'',
+        ComShowdialogVisible:false,
+      }
+    },
+    mounted(){
+      this.selectAll();
+    },
+    methods: {
+      showComDialog(row){
+        this.comment = row.content;
+        this.ComShowdialogVisible = true;
+      },
+      deleteUserByIds(){
+        //弹出确认的提示框防止误操作
+        this.$confirm('此操作将永久删除用户数据, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          //1.创建id数组[1, 2, 3], 从this.multipleSelection获取
+          for (let i = 0; i < this.multipleSelection.length; i++) {
+            let selectionElement = this.multipleSelection[i];
+            this.selectIds[i] = selectionElement.user_id;
+          }
+          //2.发送ajax请求
+          var _this = this;
+          axios.delete("/users/ids/"+this.selectIds).then((resp)=>{
+            if(resp.data.code==10021){
+              //删除成功
+              //弹出消息提示
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectUserAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deleteAlbumByIds(){
+        //弹出确认的提示框防止误操作
+        this.$confirm('此操作将永久删除专辑数据, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          //1.创建id数组[1, 2, 3], 从this.multipleSelection获取
+          for (let i = 0; i < this.multipleSelection.length; i++) {
+            let selectionElement = this.multipleSelection[i];
+            this.selectIds[i] = selectionElement.alb_id;
+          }
+          //2.发送ajax请求
+          var _this = this;
+          axios.delete("/albums/ids/"+this.selectIds).then((resp)=>{
+            if(resp.data.code==10021){
+              //删除成功
+              //弹出消息提示
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAlbumAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deleteSongByIds(){
+        //弹出确认的提示框防止误操作
+        this.$confirm('此操作将永久删除歌曲数据, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          //1.创建id数组[1, 2, 3], 从this.multipleSelection获取
+          for (let i = 0; i < this.multipleSelection.length; i++) {
+            let selectionElement = this.multipleSelection[i];
+            this.selectIds[i] = selectionElement.son_id;
+          }
+          //2.发送ajax请求
+          var _this = this;
+          axios.delete("/songs/ids/"+this.selectIds).then((resp)=>{
+            if(resp.data.code==10021){
+              //删除成功
+              //弹出消息提示
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deleteSingerByIds(){
+        //弹出确认的提示框防止误操作
+        this.$confirm('此操作将永久删除歌手数据, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          //1.创建id数组[1, 2, 3], 从this.multipleSelection获取
+          for (let i = 0; i < this.multipleSelection.length; i++) {
+            let selectionElement = this.multipleSelection[i];
+            this.selectIds[i] = selectionElement.sin_id;
+          }
+          //2.发送ajax请求
+          var _this = this;
+          axios.delete("/singers/ids/"+this.selectIds).then((resp)=>{
+            if(resp.data.code==10021){
+              //删除成功
+              //弹出消息提示
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deleteComByIds(){
+        //弹出确认的提示框防止误操作
+        this.$confirm('此操作将永久删除评论数据, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          //1.创建id数组[1, 2, 3], 从this.multipleSelection获取
+          for (let i = 0; i < this.multipleSelection.length; i++) {
+            let selectionElement = this.multipleSelection[i];
+            this.selectIds[i] = selectionElement.com_id;
+          }
+          //2.发送ajax请求
+          var _this = this;
+          axios.delete("/comments/ids/"+this.selectIds).then((resp)=>{
+            if(resp.data.code==10021){
+              //删除成功
+              //弹出消息提示
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      UpdateUser(form){
+        this.$refs[form].validate((valid) => {
+          if (valid) {
+            var _this = this;
+            //发送ajax异步请求添加数据
+            axios.put("/users", this.updateUserUse).then((resp)=>{
+              if(resp.data.code==10031){
+                //修改成功
+                //关闭窗口
+                this.showUserUpdate = false;
+                //弹出消息提示
+                this.$message({
+                  message: '恭喜你，修改成功',
+                  type: 'success'
+                });
+                //重新查询数据
+                this.selectAll();
+              }
+            })
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+
+      },
+      UpdateAlbum(form){
+        this.$refs[form].validate((valid) => {
+          if (valid) {
+            var _this = this;
+            //发送ajax异步请求添加数据
+            axios.put("/albums", this.updatealbumUse).then((resp)=>{
+              if(resp.data.code==10031){
+                //修改成功
+                //关闭窗口
+                this.showAlbumUpdate = false;
+                //弹出消息提示
+                this.$message({
+                  message: '恭喜你，修改成功',
+                  type: 'success'
+                });
+                //重新查询数据
+                this.selectAll();
+              }
+            })
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      UpdateSong(form){
+        this.$refs[form].validate((valid) => {
+          if (valid) {
+            var _this = this;
+            if(this.updatesongUse.duration.length!=8){
+              this.updatesongUse.duration='00:'+this.updatesongUse.duration;
+            }
+            //发送ajax异步请求添加数据
+            axios.put("/songs", this.updatesongUse).then((resp)=>{
+              if(resp.data.code==10031){
+                //修改成功
+                //关闭窗口
+                this.showUpdate = false;
+                //弹出消息提示
+                this.$message({
+                  message: '恭喜你，修改成功',
+                  type: 'success'
+                });
+                //重新查询数据
+                this.selectAll();
+              }
+            })
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      UpdateSinger(form){
+        this.$refs[form].validate((valid) => {
+          if (valid) {
+            var _this = this;
+            //发送ajax异步请求添加数据
+            axios.put("/singers", this.updatesingerUse).then((resp)=>{
+              if(resp.data.code==10031){
+                //修改成功
+                //关闭窗口
+                this.showSingerUpdate = false;
+                //弹出消息提示
+                this.$message({
+                  message: '恭喜你，修改成功',
+                  type: 'success'
+                });
+                //重新查询数据
+                this.selectAll();
+              }
+            })
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      updateUserShow(index, row){
+        var _this = this;
+        axios.get("/users/id/"+row.user.id).then((resp)=>{
+          this.updateUserUse = resp.data.data;
+        })
+        this.showUserUpdate = true;
+      },
+      AlbumupdateShow(index, row){
+        var _this = this;
+        axios.get("/albums/id/"+row.alb_id).then((resp)=>{
+          this.updatealbumUse = resp.data.data;
+        })
+        this.showAlbumUpdate = true;
+      },
+      updateShow(index, row){
+        axios.get("/songs/song/"+row.son_id).then((resp)=>{
+          this.updatesongUse = resp.data.data;
+        })
+        this.showUpdate = true;
+      },
+      updateSingerShow(index, row){
+        var _this = this;
+        axios.get("/singers/id/"+row.sin_id).then((resp)=>{
+          this.updatesingerUse = resp.data.data;
+        })
+        this.showSingerUpdate = true;
+      },
+      deleteUserByChoose(index, row){
+        //弹出提示框
+        this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          var _this = this;
+          axios.delete("/users/id/"+row.user_id).then((resp)=>{
+            if(resp.data.code==10021){
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deleteAlbumByChoose(index, row){
+        //弹出提示框
+        this.$confirm('此操作将永久删除该专辑, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          var _this = this;
+          axios.delete("/albums/id/"+row.alb_id).then((resp)=>{
+            if(resp.data.code==10021){
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deleteSongByChoose(index, row){
+        alert(row)
+        console.log(row)
+        //弹出提示框
+        this.$confirm('此操作将永久删除该歌曲, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          var _this = this;
+          axios.delete("/songs/id/"+row.son_id).then((resp)=>{
+            if(resp.data.code==10021){
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deleteSingerByChoose(index, row){
+        //弹出提示框
+        this.$confirm('此操作将永久删除该歌手, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          var _this = this;
+          axios.delete("/singers/id/"+row.sin_id).then((resp)=>{
+            if(resp.data.code==10021){
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deletePurchaseByChoose(index, row){
+        //弹出提示框
+        this.$confirm('此操作将永久删除该订单, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          var _this = this;
+          axios.delete("/purchases/id/"+row.user_id+"/"+row.alb_id).then((resp)=>{
+            if(resp.data.code==10021){
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      deleteComByChoose(index, row){
+        this.$confirm('此操作将永久删除该评论, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          //用户点击确认按钮
+          var _this = this;
+          axios.delete("/comments/id/"+row.com_id).then((resp)=>{
+            if(resp.data.code==10021){
+              this.$message({
+                message: '恭喜你，删除成功',
+                type: 'success'
+              });
+              //重新查询数据
+              this.selectAll();
+            }
+          })
+        }).catch(() => {
+          //用户点击取消按钮
+          this.$message({
+            type: 'info',
+            message: '已取消删除'
+          });
+        });
+      },
+      selectAllAlbumName(){
+        var _this = this;
+        axios.get("/albums/selectAll/1/99999/"+null).then((resp)=>{
+          this.AllAlbumName = resp.data.data.rows;
+        })
+      },
+      selectAllSingerName(){
+        var _this = this;
+        axios.get("/singers/selectAll/1/99999/"+null).then((resp)=>{
+          this.AllSingerName = resp.data.data.rows;
+        })
+      },
+      addUser(form){
+        this.$refs[form].validate((valid) => {
+          if (valid) {
+            var _this = this;
+            axios.post("/users/manage", this.adduserUse).then((resp)=>{
+              if(resp.data.code==10011){
+                //添加成功
+                //关闭窗口
+                this.AddUserdialogVisible = false;
+                //弹出消息提示
+                this.success();
+                this.adduserUse = {};
+                //重新查询数据
+                this.selectAll();
+              }
+            })
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      addAlbum(form){
+        this.$refs[form].validate((valid) => {
+          if (valid) {
+            const date = this.addalbumUse.alb_time;
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            this.addalbumUse.alb_time = year+"-"+month+"-"+day;
+            var _this = this;
+            axios.post("/albums/", this.addalbumUse).then((resp)=>{
+              if(resp.data.code==10011){
+                //添加成功
+                //关闭窗口
+                this.AddAlbumdialogVisible = false;
+                //弹出消息提示
+                this.success();
+                this.addalbumUse = {};
+                //重新查询数据
+                this.selectAll();
+              }
+            })
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      addSong(form){
+        this.$refs[form].validate((valid) => {
+          if (valid) {
+            var _this = this;
+            if(this.addsongUse.duration.length!=8){
+              this.addsongUse.duration='00:'+this.addsongUse.duration;
+            }
+            axios.post("/songs/add", this.addsongUse).then((resp)=>{
+              if(resp.data.code==10011){
+                //添加成功
+                //关闭窗口
+                this.dialogVisible = false;
+                //弹出消息提示
+                this.success();
+                this.addsongUse = {};
+                //重新查询数据
+                this.selectAll();
+              }
+            })
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      addSinger(form){
+        this.$refs[form].validate((valid) => {
+          if (valid) {
+            var _this = this;
+            axios.post("/singers/", this.addsingerUse).then((resp)=>{
+              if(resp.data.code==10011){
+                //添加成功
+                //关闭窗口
+                this.AddSingerdialogVisible = false;
+                //弹出消息提示
+                this.success();
+                this.addsingerUse = {};
+                //重新查询数据
+                this.selectAll();
+              }
+            })
+          } else {
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      addPurchase(form){
+        axios.post("/purchases", this.addpurUser).then((resp)=>{
+          if(resp.data.code==10011){
+            //添加成功
+            //关闭窗口
+            this.AddPurdialogVisible = false;
+            //弹出消息提示
+            this.success();
+            this.addpurUser = {};
+            //重新查询数据
+            this.selectAll();
+          }else{
+            this.$message({
+              message: '请填入正确的订单号或购买信息！',
+              type: 'warning'
+            });
+          }
+        })
+      },
+      addCom(form){
+        const date = new Date(this.addcomUse.com_time);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        this.addcomUse.com_time = year+"-"+month+"-"+day;
+        axios.post("/comments", this.addcomUse).then((resp)=>{
+          if(resp.data.code==10011){
+            //添加成功
+            //关闭窗口
+            this.ComdialogVisible = false;
+            //弹出消息提示
+            this.success();
+            this.addcomUse = {};
+            //重新查询数据
+            this.selectAll();
+          }else{
+            this.$message({
+              message: '请填入正确的评论信息！',
+              type: 'warning'
+            });
+          }
+        })
+      },
+      selectUserAll(){
+        var _this = this;
+        if(this.selectImfor==''){
+          axios.get("/users/selectAll/"+this.currentUserPage+"/"+this.pageUserSize+"/"+null).then((resp)=>{
+            this.userData = resp.data.data.rows;
+            this.totalUserCount = resp.data.data.totalCount;
+          })
+        }else{
+          axios.get("/users/selectAll/"+this.currentUserPage+"/"+this.pageUserSize+"/"+this.selectImfor).then((resp)=>{
+            this.userData = resp.data.data.rows;
+            this.totalUserCount = resp.data.data.totalCount;
+          })
+        }
+      },
+      selectAlbumAll(){
+        var _this = this;
+        if(this.selectImfor==''){
+          axios.get("/albums/selectAll/"+this.currentAlbumPage+"/"+this.pageAlbumSize+"/"+null).then((resp)=>{
+            console.log(resp.data.data.rows);
+            this.albumData = resp.data.data.rows;
+            this.totalAlbumCount = resp.data.data.totalCount;
+          })
+        }else{
+          axios.get("/albums/selectAll/"+this.currentAlbumPage+"/"+this.pageAlbumSize+"/"+this.selectImfor).then((resp)=>{
+            this.albumData = resp.data.data.rows;
+            this.totalAlbumCount = resp.data.data.totalCount;
+          })
+        }
+      },
+      //查询歌曲分页数据的方法
+      selectSongAll(){
+        var _this = this;
+        if(this.selectImfor==''){
+          axios.get("/songs/selectAll/"+this.currentSongPage+"/"+this.pageSongSize+"/"+null).then((resp)=>{
+            console.log(resp.data.data.rows);
+            this.songData = resp.data.data.rows;
+            console.log(this.songData)
+            this.totalSongCount = resp.data.data.totalCount;
+          })
+        }else{
+          axios.get("/songs/selectAll/"+this.currentSongPage+"/"+this.pageSongSize+"/"+this.selectImfor).then((resp)=>{
+            this.songData = resp.data.data.rows;
+            this.totalSongCount = resp.data.data.totalCount;
+          })
+        }
+      },
+      selectSingerAll(){
+        var _this = this;
+        if(this.selectImfor==''){
+          axios.get("/singers/selectAll/"+this.currentSingerPage+"/"+this.pageSingerSize+"/"+null).then((resp)=>{
+            this.singerData = resp.data.data.rows;
+            console.log(this.singerData)
+            this.totalSingerCount = resp.data.data.totalCount;
+          })
+        }else{
+          axios.get("/singers/selectAll/"+this.currentSingerPage+"/"+this.pageSingerSize+"/"+this.selectImfor).then((resp)=>{
+            this.singerData = resp.data.data.rows;
+            this.totalSingerCount = resp.data.data.totalCount;
+          })
+        }
+      },
+      selectAllPurchase(){
+        if(this.selectImfor==''){
+          axios.get("/purchases/selectAll/"+this.currentSingerPage+"/"+this.pageSingerSize+"/"+null).then((resp)=>{
+            console.log(resp.data.data.rows);
+            this.purchaseData = resp.data.data.rows;
+            console.log(this.purchaseData)
+            this.totalSingerCount = resp.data.data.totalCount;
+          })
+        }else{
+          axios.get("/purchases/selectAll/"+this.currentSingerPage+"/"+this.pageSingerSize+"/"+this.selectImfor).then((resp)=>{
+            this.purchaseData = resp.data.data.rows;
+            this.totalSingerCount = resp.data.data.totalCount;
+          })
+        }
+      },
+      selectAllComment(){
+        if(this.selectImfor==''){
+          axios.get("/comments/selectAll/"+this.currentSingerPage+"/"+this.pageSingerSize+"/"+null).then((resp)=>{
+            console.log(resp.data.data.rows);
+            this.CommentData = resp.data.data.rows;
+            console.log(this.purchaseData)
+            this.totalComCount = resp.data.data.totalCount;
+          })
+        }else{
+          axios.get("/comments/selectAll/"+this.currentSingerPage+"/"+this.pageSingerSize+"/"+this.selectImfor).then((resp)=>{
+            this.CommentData = resp.data.data.rows;
+            this.totalComCount = resp.data.data.totalCount;
+          })
+        }
+      },
+
+      closeAddAlbumdialogVisible(form){
+        this.$refs[form].resetFields();
+        this.AddAlbumdialogVisible=false;
+      },
+      closeAddUserdialogVisible(form){
+        this.$refs[form].resetFields();
+        this.AddUserdialogVisible=false;
+      },
+      closedialogVisible(form){
+        this.$refs[form].resetFields();
+        this.dialogVisible = false;
+      },
+      closeAddSingerdialogVisible(form){
+        this.$refs[form].resetFields();
+        this.AddSingerdialogVisible=false;
+      },
+      closeAddPurdialogVisible(form){
+        this.$refs[form].resetFields();
+        this.AddPurdialogVisible = false;
+      },
+      closeComdialogVisible(form){
+        this.$refs[form].resetFields();
+        this.ComdialogVisible = false;
+      },
+
+      showDetail(row) {
+        const detail = `
+                <div>
+                <div><p style="font-size: 14px; font-weight: bold;line-height: 0.1;">主要成就：</p>`+row.achievements+`</div>
+                <div><p style="font-size: 14px; font-weight: bold;line-height: 0.1;">代表作品：</p>`+row.masterpiece+`</div>
+                <br>
+                <div><p style="font-size: 14px; font-weight: bold;line-height: 0.1;">个人简介：</p>`+row.history+`</div>
+                </div>
+                `;
+        this.detailHtml = detail;
+        this.DetaildialogVisible = true;
+      },
+      formatDate() {
+        const date = new Date(this.addalbumUse.time);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        this.addalbumUse.time = year+"-"+month+"-"+day;
+        const date2 = new Date(this.updatealbumUse.time);
+        const year2 = date2.getFullYear();
+        const month2 = String(date2.getMonth() + 1).padStart(2, '0');
+        const day2 = String(date2.getDate()).padStart(2, '0');
+        this.updatealbumUse.time = year2+"-"+month2+"-"+day2;
+      },
+      showSummaryDialog(row) {
+        this.sum = row.summary;
+        this.summarydialogVisible = true;
+      },
+      showAddressDialog(row){
+        this.address = row.address;
+        this.addressdialogVisible = true;
+      },
+      handleClose(done) {
+        this.$confirm('确认关闭？')
+                .then(_ => {
+                  done();
+                })
+                .catch(_ => {});
+      },
+      handleSelect(index){
+        this.selected = parseInt(index);
+        this.selectAll();
+      },
+
+      success(){
+        this.$message({
+          message: '恭喜你，添加成功',
+          type: 'success'
+        });
+      },
+      //分页
+      handleSongSizeChange(val) {
+        //重新设置每页显示条数
+        this.pageSongSize = val;
+        this.selectSongAll();
+      },
+      handleCurrentChange(val) {
+        //重新设置当前页码
+        this.currentSongPage = val;
+        this.selectSongAll();
+      },
+      handleAlbumSizeChange(val) {
+        //重新设置每页显示条数
+        this.pageAlbumSize = val;
+        this.selectAlbumAll();
+      },
+      handleAlbumCurrentChange(val) {
+        //重新设置当前页码
+        this.currentAlbumPage = val;
+        this.selectAlbumAll();
+      },
+      handleSingerSizeChange(val) {
+        //重新设置每页显示条数
+        this.pageSingerSize = val;
+        this.selectSingerAll();
+      },
+      handleSingerCurrentChange(val) {
+        //重新设置当前页码
+        this.currentSingerPage = val;
+        this.selectSingerAll();
+      },
+      handleUserSizeChange(val) {
+        //重新设置每页显示条数
+        this.pageUserSize = val;
+        this.selectUserAll();
+      },
+      handleUserCurrentChange(val) {
+        //重新设置当前页码
+        this.currentUserPage = val;
+        this.selectUserAll();
+      },
+      handleComCurrentChange(val) {
+        //重新设置每页显示条数
+        this.pageComSize = val;
+        this.selectAllComment();
+      },
+      handleComSizeChange(val) {
+        //重新设置当前页码
+        this.currentComPage = val;
+        this.selectAllComment();
+      },
+      handleSelectionChange(val) {
+        this. multipleSelection = val;
+      },
+
+      search(){
+        this.selectAll();
+      },
+
+      selectAll(){
+        this.currentAlbumPage = 1;
+        this.currentSongPage = 1;
+        this.currentSingerPage = 1;
+        this.currentUserPage = 1;
+        this.pageAlbumSize = 5;
+        this.pageSongSize = 5;
+        this.pageSingerSize = 5;
+        this.pageUserSize = 5;
+        this.selectSongAll();
+        this.selectAlbumAll();
+        this.selectAllAlbumName();
+        this.selectAllSingerName();
+        this.selectAllPurchase();
+        this.selectAllComment();
+      },
+      handleRemove(file, fileList) {
+        console.log(file, fileList);
+      },
+      handlePreview(file) {
+        console.log(file);
+      },
+      handleExceed(files, fileList) {
+        this.$message.warning(`当前限制选择 1 个文件，本次已上传了1个文件`);
+      },
+      beforeRemove(file, fileList) {
+        return this.$confirm(`确定移除？`);
+      },
+      handleSuccess(response, file, fileList) {
+        console.log(file, fileList);
+        this.addsongUse.file = file.name;
+        this.updatesongUse.file = file.name;
+      },
+      handleAlbumSuccess(response, file, fileList) {
+        console.log(file, fileList);
+        this.addalbumUse.img = file.name;
+        this.updatealbumUse.img = file.name;
+      },
+      handleSingerSuccess(response, file, fileList) {
+        console.log(file, fileList);
+        this.addsingerUse.img = file.name;
+        this.addsingerUse.img = file.name;
+      },
+      handleUserSuccess(response, file, fileList) {
+        console.log(file, fileList);
+        this.adduserUse.imgs = file.name;
+        alert(this.adduserUse.imgs)
+        this.updateUserUse.imgs = file.name;
+      },
+      quit(){
+        axios.get("/login/quit").then((resp)=>{
+          window.location.href = "http://localhost/pages/login.html"
+        })
+      }
+    }
+  })
+</script>
+</body>
+
+</body>
+</html>

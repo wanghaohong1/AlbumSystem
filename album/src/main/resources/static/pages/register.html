@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+  <title>Welcome to register</title>
+  <link href="../css/register.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+
+<body>
+<div id="registerUse" class="form-div">
+  <div class="reg-content">
+    <h1>SIGN UP</h1>
+  </div>
+  <form method="post">
+    <p class="p1">Username:<input class="inputbox" id="username" name="username" type="text" v-model="userdata.username" value="" @blur="checkUsername" required><span style="color: red;">*</span><span v-show="!UsernameErr" class="error-message" style="font-size: 13px; color: red; margin-left: 120px">用户名已存在！</span></p>
+    <p class="p2">Password:<input class="inputbox" id="password" name="password" v-bind:type="passwordType" v-model="userdata.password" show-password v-bind:class="{ 'show-password': showPassword }" @blur="checkPassword" required><span style="color: red;">*</span><i class="fa fa-eye password-icon" aria-hidden="true" v-on:click="togglePassword" style="display: flex; margin-left: 290px; margin-top: -32px"></i></p>
+    <p class="p3">CheckPass:<input class="inputbox" id="checkpassword" name="checkpassword" v-bind:type="passwordType1" v-model="checkpassword" show-password1 v-bind:class="{ 'show-password1': showPassword1 }" @blur="checkPassword" required><span style="color: red;">*</span><i class="fa fa-eye password-icon1" aria-hidden="true" v-on:click="togglePassword1" style="display: flex; margin-left: 297px; margin-top: -32px"></i><br><span v-show="!passwordMatch" class="error-message" style="font-size: 13px; color: red; margin-left: 120px">两次输入密码不一致!</span></p>
+    <p class="p4">CheckCode:<input class="checkinputbox" name="checkCode" type="text" id="checkCode" style="width: 80px !important; border-radius: 0 !important;" v-model="checkCode" required><span style="color: red;">*</span><img id="checkCodeImg"  src="/users/checkCodeServlet"><a href="#" id="changeImg">看不清？</a></p>
+    <div id="subDiv" style="display: flex; align-items: center; justify-content: center;">
+      <el-button class="reg-btn1" type="primary" @click="submitForm" style="display: flex; justify-content: center; align-items: center;" >sign up</el-button>
+      <el-button class="reg-btn2" @click="resetForm">reset</el-button>
+      <a href="login.html">已有账号？点击登录</a>
+    </div>
+  </form>
+
+</div>
+
+<script src="../js/vue.js"></script>
+<script src="../js/axios-0.18.0.js"></script>
+<script src="../element-ui/lib/index.js"></script>
+<link rel="stylesheet" href="../element-ui/lib/theme-chalk/index.css">
+<script>
+  new Vue({
+    el:"#registerUse",
+
+    data() {
+      return {
+        //验证码信息
+        checkCode:'',
+        //是否显示用户名重复的提示
+        UsernameErr:true,
+        //是否显示两次密码输入不一样的提示
+        passwordMatch: true,
+        //用户在登录界面输入的数据，包括名字和密码
+        userdata:{},
+        checkpassword:'',
+        passwordType: 'password', // 密码输入框的类型，默认为password
+        showPassword: false, // 是否显示密码图标，默认为false
+        passwordType1: 'password', // 密码输入框的类型，默认为password
+        showPassword1: false // 是否显示密码图标，默认为false
+      }
+    },
+    methods: {
+      //检查密码是否一致
+      checkPassword() {
+        if (this.userdata.password !== this.checkpassword) {
+          this.passwordMatch = false;
+        } else {
+          this.passwordMatch = true;
+        }
+      },
+
+      //检查用户名是否重复
+      checkUsername(){
+        axios.get("/users/user/"+this.userdata.username).then((resp)=>{
+          if(resp.data.code==10041){
+            this.UsernameErr = false;
+          }else{
+            this.UsernameErr = true;
+          }
+        })
+      },
+
+      // 切换密码输入框的类型和是否显示密码图标
+      togglePassword(){
+        this.showPassword = !this.showPassword;
+        this.passwordType = this.showPassword ? 'text' : 'password';
+      },
+
+      togglePassword1(){
+        this.showPassword1 = !this.showPassword1;
+        this.passwordType1 = this.showPassword1 ? 'text' : 'password';
+      },
+
+      submitForm: function() {
+        var _this = this;
+        var flag = false;
+        if(this.checkCode == ''||this.userdata.username==''||this.userdata.password==''||this.checkpassword==''){
+          this.$message({
+            message: '请完整填写注册信息！',
+            type: 'warning'
+          });
+          return false;
+        }
+        //任务：验证码验证，这里还是用ajax，把验证码信息传输到servlet，返回验证码是否正确，以及可以注册了，用它保存信息
+        // 验证密码格式是否正确
+        axios.get("/users/register/"+this.checkCode).then((resp)=>{
+          if(resp.data.code==10040){
+            _this.$message.error('验证码错误！');
+            document.getElementById("checkCodeImg").src = "/users/checkCodeServlet?"+new Date().getMilliseconds();
+          }else{
+            if((_this.passwordMatch==true)&& (_this.UsernameErr==true) && (_this.userdata.username!=='') && (_this.userdata.password!=='') && (_this.UsernameErr=true) && (_this.checkpassword!=='')){
+              axios.post("/users", this.userdata).then((resp)=>{
+                window.location.href = "http://localhost/pages/login.html";
+              })
+            }else{
+              _this.$message.error('请正确填写信息！');
+              return false;
+            }
+          }
+        })
+      },
+
+      resetForm() {
+        this.userdata.username='';
+        this.userdata.password='';
+        this.checkpassword='';
+        this.checkCode=''
+        this.passwordMatch=true;
+        this.UsernameErr=true;
+      }
+    }
+  })
+
+  document.getElementById("changeImg").onclick = function () {
+    document.getElementById("checkCodeImg").src = "/users/checkCodeServlet?"+new Date().getMilliseconds();
+  }
+
+  document.getElementById("checkCodeImg").onclick = function (){
+    document.getElementById("checkCodeImg").src = "/users/checkCodeServlet?"+new Date().getMilliseconds();
+  }
+</script>
+</body>
+</html>

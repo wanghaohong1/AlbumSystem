@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Music音乐专辑系统</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/showalbum.css">
+    <!-- 引入 Swiper 样式文件 -->
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"/>
+    <link rel="shortcut icon" href="#"/>
+</head>
+<body>
+<div id="app" class="app">
+  <el-container>
+    <el-header class="demo-image">
+      <div class="nav-container">
+        <div class="nav-item nav-logo">
+          <img src="../imgs/user.png" alt="logo">
+          <span id="logoname">Music</span>
+        </div>
+        <div class="nav-item nav-menu" @click="empty">
+          <el-menu  class="el-menu-demo" mode="horizontal" @select="firstSelect">
+            <el-menu-item index="1">首页</el-menu-item>
+            <el-menu-item index="2">专辑</el-menu-item>
+            <el-menu-item index="3">单曲</el-menu-item>
+            <el-menu-item index="4">歌手</el-menu-item>
+            <el-menu-item index="8">我的收藏</el-menu-item>
+          </el-menu>
+        </div>
+        <div class="nav-item nav-search" @keyup.enter="search">
+          <el-input placeholder="请输入关键词" v-model="selectImfor">
+            <template v-slot:suffix>
+              <i class="el-icon-search" @click="search"></i>
+            </template>
+          </el-input>
+        </div>
+        <div class="nav-item nav-user" id="gologin">
+          <el-button type="text" @click="login">登录</el-button>
+          <el-button type="primary" @click="register">注册</el-button>
+        </div>
+        <div id="welcome" @click="goUserIM()">
+          <span style="font-size: 14px;font-weight: bold;margin-bottom: 2px; cursor: pointer;">{{userdata.username}}</span>
+        </div>
+        <div class="block" id="userimage" style="margin-left: -10%" @click="goUserIM()">
+          <el-avatar ref="userimage" :size="size" :src="circleUrl" style="height: 50px; width: 50px; cursor: pointer;"></el-avatar>
+        </div>
+      </div>
+    </el-header>
+<!--    广告界面-->
+    <el-main class="first" v-if="selected === 1">
+      <template>
+        <div class="swiper-containers">
+          <el-carousel :interval="2300" :autoplay="true" type="card" indicator-position="none" :indicator-margin="-100" style="margin-top:30px;">
+            <div class="swiper-slides">
+              <el-carousel-item v-for="(item, index) in carouselItems" :key="index">
+                <img :src="item" style="width: 100%; height: 100%;" @click="handleItemClick(index)">
+              </el-carousel-item>
+            </div>
+          </el-carousel>
+        </div>
+      </template>
+    </el-main>
+<!--    首页界面-->
+    <div style="width: 1350px; display: flex; margin: auto"  v-if="selected === 1">
+      <el-main class="second">
+        <div class="principal">
+          <el-container>
+            <el-aside class="el-aside1" width="200px"><p>热门专辑</p></el-aside>
+            <el-main style="background-color: white">
+              <div class="albums">
+                <div class="album" v-for="(album, index) in albums" :key="index">
+                  <img :src="album.img" :alt="album.name" @click="openA(album.id)">
+                  <p>{{album.name}}</p>
+                </div>
+              </div>
+              <span class="lookmore" @click="lookmore1"><el-link :underline="false">查看更多<i class="el-icon-arrow-right"></i></el-link></span>
+            </el-main>
+          </el-container>
+          <template>
+            <el-container style="margin-top:25px;">
+              <el-aside class="el-aside2" width="200px"><p>热门单曲</p></el-aside>
+              <el-main style="background-color: white">
+                <el-row :gutter="10" justify="space-between">
+                  <el-col :span="12" v-for="(song, index) in songs" :key="index">
+                    <el-card class="song-card" :body-style="{padding: '0'}" style="margin-top:15px;">
+                      <div class="song-cover">
+                        <img :src="`../imgs/alumb/`+song.img" alt="">
+                        <div class="song-info">
+                          <span class="song-name">{{ song.name }}</span>
+                          <span class="song-artist">{{ song.singerName }}</span>
+                        </div>
+                      </div>
+                      <div class="song-actions">
+                        <span class="action-icons">
+                            <i class="el-icon-video-play" style="font-size:28px" @click="playchange(song)"></i>
+                            <i class="far fa-heart" :style="{display: song.isCollect ? 'none' : 'inline-block'}" @click="addCollect(song)"></i>
+                            <i class="fas fa-heart" style="color: #f56c6c;" :style="{display: song.isCollect ? 'inline-block' : 'none'}" @click="deleteCollect(song)"></i>&nbsp;
+                            <i class="el-icon-download" style="font-size:28px" @click="downOpen(song)"></i>
+                        </span>
+                      </div>
+                    </el-card>
+                  </el-col>
+                </el-row>
+                <span class="lookmore" style="margin-top:40px;" @click="lookmore2"><el-link :underline="false">查看更多<i class="el-icon-arrow-right"></i></el-link></span>
+              </el-main>
+            </el-container>
+          </template>
+
+          <el-container style="margin-top:25px;">
+            <el-aside class="el-aside3" width="200px">
+              <p>热门歌手</p>
+            </el-aside>
+            <el-main style="background-color: white">
+              <el-row :gutter="20">
+                <el-col :span="24" v-for="(singer, index) in singers" :key="index">
+                  <div class="singer-card" @click="openS(singer)">
+                    <div class="singer-info">
+                      <img :src="singer.avatarUrl" style="height: 100px; width: 100px; border-radius: 50%; " alt="" />
+                      <div class="singer-text">
+                        <div class="singer-name">{{ singer.name }}</div>
+                        <div class="singer-count">
+                          <span class="count">单曲：{{ singer.songsnum }}</span>
+                          <span class="count">专辑：{{ singer.albumnum }}</span>
+                        </div>
+                      </div>
+                      <div class="detail1">
+                        <i class="el-icon-arrow-right"></i>
+                      </div>
+                    </div>
+                    <div class="album-info">
+                      <img :src="singer.ReAlbumUrlimg" style="height: 80px; width: 80px; margin-left: -650px" alt="" />
+                      <div class="album-text">
+                        <div class="album-name">{{ singer.ReAlbumName }}</div>
+                      </div>
+                      <div class="detail2">
+                        <i class="el-icon-arrow-right"></i>
+                      </div>
+                    </div>
+                  </div>
+                </el-col>
+              </el-row>
+              <span class="lookmore" style="margin-top: 3%" @click="lookmore3"><el-link :underline="false">查看更多<i class="el-icon-arrow-right"></i></el-link></span>
+            </el-main>
+          </el-container>
+        </div>
+      </el-main>
+    </div>
+
+<!--    专辑界面-->
+    <div id="albumshow" v-else-if="selected === 2">
+      <el-main class="myfirst" style="margin-top:80px !important; width: 1350px !important;">
+        <h1 style="display: flex; align-items: center; justify-content: center; text-align: center; height: 60px; font-size: 24px; font-weight: bold; color: #333; background-color: #F2F8FE">专&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp辑</h1>
+        <template>
+          <el-row :gutter="0" justify="space-between">
+            <el-col :span="6"  v-for="(td, index) in tableData" :key="index">
+              <div class="album-wrapper" @click="AlbumDetails(td.id)">
+                <img class="album-image" :src="'../imgs/alumb/' + td.img" style="height: 220px; width: 220px; border-radius: 15px" alt="album1">
+                <div class="play-button">
+                  <i class="el-icon-video-play"  style="font-size: 94px;"></i>
+                </div>
+                <p class="alumb-name" style="display: flex; margin-left: 60px; line-height: 1.2;margin-top: -60px;margin-bottom: 30px; font-size: 17px; font-family: 华光黑变_CNKI,serif; font-weight: bold; white-space: nowrap;">{{ td.name }}</p>
+                <p class="alumb-name" style="display: flex; margin-left: 60px; line-height: 3;margin-top: -40px;margin-bottom: 30px; font-size: 16px; font-family: 'Times New Roman',serif; white-space: nowrap; text-overflow: ellipsis;">{{ td.time }}</p>
+              </div>
+            </el-col>
+          </el-row>
+        </template>
+        <!--分页工具条-->
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="currentPage"
+                :page-sizes="[8, 12, 16, 20]"
+                :page-size="pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="totalCount">
+        </el-pagination>
+      </el-main>
+    </div>
+
+<!--    歌曲界面-->
+    <div id="songshow" v-else-if="selected === 3">
+      <el-main style="width: 1250px; background-color: #e4e4e4; margin: auto">
+        <template>
+          <el-table
+                  :data="songdetails"
+                  style="width: 100%"
+                  stripe
+                  :header-cell-style="{textAlign: 'center', height: '10px', fontSize:'17px', fontWeight: 'bold', background: '#e4e4e4'}"
+                  :cell-style="{textAlign: 'center', fontSize: '14px', fontWeight: 'bold'}"
+                  :header-row-style="{ height: '10px' }"
+          >
+            <el-table-column prop="img" label="" width="130">
+              <template slot-scope="scope">
+                <img :src="`../imgs/alumb/`+scope.row.img" style="width: 58px; height: 58px;">
+              </template>
+            </el-table-column>
+            <el-table-column
+                    prop="name"
+                    label="歌曲名"
+                    width="230">
+            </el-table-column>
+            <el-table-column
+                    prop="singerName"
+                    label="歌手名"
+                    width="140">
+            </el-table-column>
+            <el-table-column
+                    prop="albumName"
+                    label="专辑名"
+                    width="300">
+            </el-table-column>
+            <el-table-column
+                    prop="duration"
+                    label="时长"
+                    width="130"
+                    :cell-style="{textAlign: 'center', fontWeight: 'normal'}">
+            </el-table-column>
+            <el-table-column align="center" label="操作" width="280">
+              <template slot-scope="scope">
+                <i class="el-icon-video-play" style="font-size:28px" @click="playchange(scope.row)"></i>
+                <i class="far fa-heart" :style="{display: scope.row.isCollect ? 'none' : 'inline-block'}" @click="addCollect(scope.row)"></i>
+                <i class="fas fa-heart" style="color: #f56c6c;" :style="{display: scope.row.isCollect ? 'inline-block' : 'none'}" @click="deleteCollect(scope.row)"></i>&nbsp;
+                <i class="el-icon-download" style="font-size:28px" @click="downOpen(scope.row)"></i>
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
+        <el-pagination
+                @size-change="handleSongSizeChange"
+                @current-change="handleSongCurrentChange"
+                :current-page="currentSongPage"
+                :page-sizes="[5, 10, 15, 20]"
+                :page-size="pageSongSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="totalSongCount"
+                style="margin-top: 40px">
+        </el-pagination>
+      </el-main>
+    </div>
+
+<!--    歌手界面-->
+    <div id="singer" v-else-if="selected === 4">
+      <el-main class="myfirst" style="margin-top:80px !important; width: 1350px !important;">
+        <h1 style="display: flex; align-items: center; justify-content: center; text-align: center; height: 60px; font-size: 22px; font-weight: bold; color: #333; background-color: #F2F8FE">歌&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp手</h1>
+        <template>
+          <el-row :gutter="0" justify="space-between">
+            <el-col :span="8"  v-for="(sin, index) in singer" :key="index">
+              <div class="album-wrapper" @click="selectsingerdetails(sin)">
+                <img class="album-image" :src="'../imgs/singershow/' + sin.img" style="height: 240px; width: 240px; border-radius: 50%">
+                <p class="alumb-name" style="line-height: 3;margin-top: -60px;margin-bottom: 30px; font-size: 17px; font-family: 华光黑变_CNKI,serif; font-weight: bold; white-space: nowrap;">{{ sin.name }}</p>
+                <p class="alumb-name" style="line-height: 3;margin-top: -40px;margin-bottom: 30px; font-size: 14px;color: #666666;white-space: nowrap; text-overflow: ellipsis;">单曲：{{ sin.songNumber }}&nbsp&nbsp&nbsp&nbsp专辑：{{ sin.albumNumber }}</p>
+              </div>
+            </el-col>
+          </el-row>
+        </template>
+        <!--分页工具条-->
+        <el-pagination
+                @size-change="handleSingerSizeChange"
+                @current-change="handleSingerCurrentChange"
+                :current-page="currentSingerPage"
+                :page-sizes="[6, 9, 12, 15]"
+                :page-size="pageSingerSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="totalSingerCount">
+        </el-pagination>
+      </el-main>
+    </div>
+
+<!--    收藏界面-->
+    <div id="sheet" v-else-if="selected === 8">
+      <h1 style="display: flex; margin-top: 50px; align-items: center; justify-content: center; text-align: center; height: 80px; font-size: 22px; font-weight: bold; color: #333; background-color: #e4e4e4">收&nbsp藏&nbsp歌&nbsp单</h1>
+      <el-main style="width: 1250px; background-color: #e4e4e4; margin: auto; margin-top: -30px;">
+        <template>
+          <el-table
+                  :data="collect"
+                  style="width: 100%; margin-top: -60px"
+                  :header-cell-style="{textAlign: 'center', fontSize:'17px', fontWeight: 'bold', background: '#e4e4e4'}"
+                  :cell-style="{textAlign: 'center', fontSize: '14px', fontWeight: 'bold'}">
+            <el-table-column prop="img" label="" width="130">
+              <template slot-scope="scope">
+                <img :src="`../imgs/alumb/`+scope.row.img" style="width: 58px; height: 58px;">
+              </template>
+            </el-table-column>
+            <el-table-column
+                    prop="name"
+                    label="歌曲名"
+                    width="230">
+            </el-table-column>
+            <el-table-column
+                    prop="singerName"
+                    label="歌手名"
+                    width="140">
+            </el-table-column>
+            <el-table-column
+                    prop="albumName"
+                    label="专辑名"
+                    width="300">
+            </el-table-column>
+            <el-table-column
+                    prop="duration"
+                    label="时长"
+                    width="130"
+                    :cell-style="{textAlign: 'center', fontWeight: 'normal'}">
+            </el-table-column>
+            <el-table-column align="center" label="操作" width="280">
+              <template slot-scope="scope">
+                <i class="el-icon-video-play" style="font-size:28px" @click="playchange(scope.row)"></i>
+                <i class="far fa-heart" :style="{display: scope.row.isCollect ? 'none' : 'inline-block'}" @click="addCollect(scope.row)"></i>
+                <i class="fas fa-heart" style="color: #f56c6c;" :style="{display: scope.row.isCollect ? 'inline-block' : 'none'}" @click="deleteCollect(scope.row)"></i>&nbsp;
+                <i class="el-icon-download" style="font-size:28px" @click="downOpen(scope.row)"></i>
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
+      </el-main>
+    </div>
+
+<!--    专辑详情页-->
+    <div id="albumdetails" v-else-if="selected === 5">
+      <el-header style="text-align: right; font-size: 16px; margin-top:53px !important; background-color: #d1dbe5!important;">
+        <span class="back" @click="back"><i class="el-icon-arrow-left">返回</i></span>
+      </el-header>
+      <el-main class="myfirst" style="width: 1250px !important; flex: 1;min-height: 130vh;">
+        <h1 style="display: flex; align-items: center; justify-content: center; text-align: center; height: 70px; font-size: 22px; font-weight: bold; color: #333; background-color: #F2F8FE">专&nbsp辑&nbsp详&nbsp情</h1>
+        <div class="albumheader" style="display: grid; grid-template-columns: 200px auto;">
+          <div style="width: 260px">
+            <img :src="'../imgs/alumb/'+ albumdetails.img" style="display: flex; justify-items: left; width: 248px; height: 248px; margin: 40px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.2); border-radius: 3%;">
+          </div>
+          <br>
+          <div style="width: 1350px; margin-left: 40px; margin-top:-350px">
+            <div style="height: 50px;">
+              <span style="display: inline-block; width: 150px; text-align: left; font-weight: bold;">专辑名称:</span>
+              <span style="display: inline-block; width: 600px; text-align: left; font-family: 微软雅黑,serif">{{albumdetails.name}}</span>
+            </div>
+            <div style="height: 50px;">
+              <span style="display: inline-block; width: 150px; text-align: left; font-weight: bold;">歌手名称:</span>
+              <span style="display: inline-block; width: 600px; text-align: left; font-family: 微软雅黑,serif">{{albumdetails.singerName}}</span>
+            </div>
+            <div style="height: 50px;">
+              <span style="display: inline-block; width: 150px; text-align: left; font-weight: bold;">流派:</span>
+              <span style="display: inline-block; width: 600px; text-align: left; font-family: 微软雅黑,serif">{{albumdetails.style}}</span>
+            </div>
+            <div style="height: 50px;">
+              <span style="display: inline-block; width: 150px; text-align: left; font-weight: bold;">曲目数量:</span>
+              <span style="display: inline-block; width: 600px; text-align: left; font-family: 微软雅黑,serif">{{albumdetails.number}}首</span>
+            </div>
+            <div style="height: 50px;">
+              <span style="display: inline-block; width: 150px; text-align: left; font-weight: bold;">发行时间:</span>
+              <span style="display: inline-block; width: 600px; text-align: left; font-family: 微软雅黑,serif">{{albumdetails.time}}</span>
+            </div>
+            <div style="height: 50px;">
+              <span style="display: inline-block; width: 150px; text-align: left; font-weight: bold;">发行公司:</span>
+              <span style="display: inline-block; width: 600px; text-align: left; font-family: 微软雅黑,serif">{{albumdetails.company}}</span>
+            </div>
+            <div style="height: 50px;">
+              <span style="display: inline-block; width: 150px; text-align: left; font-weight: bold;">语言:</span>
+              <span style="display: inline-block; width: 600px; text-align: left; font-family: 微软雅黑,serif">{{albumdetails.language}}</span>
+            </div>
+            <div style="height: 50px;">
+              <span style="display: inline-block; width: 150px; text-align: left; vertical-align: top; font-weight: bold;">简介:</span>
+              <span style="display: inline-block; height: 20px; width: 600px; text-align: left; margin-top: 59px; line-height: 2.4; font-family: 微软雅黑,serif">{{albumdetails.summary}}</span>
+            </div>
+          </div>
+        </div>
+        <div class="albumcontent" style="margin-top: 280px">
+          <el-table
+                  :data="songdetails"
+                  style="width: 100%"
+                  stripe
+                  :header-cell-style="{textAlign: 'center', height: '10px', fontSize:'17px', fontWeight: 'bold', background: '#e4e4e4'}"
+                  :cell-style="{textAlign: 'center', fontSize: '14px', fontWeight: 'bold'}"
+                  :header-row-style="{ height: '10px' }"
+          >
+            <el-table-column prop="img" label="" width="130">
+              <template slot-scope="scope">
+                <img :src="`../imgs/alumb/`+scope.row.img" style="width: 58px; height: 58px;">
+              </template>
+            </el-table-column>
+            <el-table-column
+                    prop="name"
+                    label="歌曲名"
+                    width="230">
+            </el-table-column>
+            <el-table-column
+                    prop="singerName"
+                    label="歌手名"
+                    width="140">
+            </el-table-column>
+            <el-table-column
+                    prop="albumName"
+                    label="专辑名"
+                    width="300">
+            </el-table-column>
+            <el-table-column
+                    prop="duration"
+                    label="时长"
+                    width="130"
+                    :cell-style="{textAlign: 'center', fontWeight: 'normal'}">
+            </el-table-column>
+            <el-table-column align="center" label="操作" width="280">
+              <template slot-scope="scope">
+                <i class="el-icon-video-play" style="font-size:28px" @click="playchange(scope.row)"></i>
+                <i class="far fa-heart" :style="{display: scope.row.isCollect ? 'none' : 'inline-block'}" @click="addCollect(scope.row)"></i>
+                <i class="fas fa-heart" style="color: #f56c6c;" :style="{display: scope.row.isCollect ? 'inline-block' : 'none'}" @click="deleteCollect(scope.row)"></i>&nbsp;
+                <i class="el-icon-download" style="font-size:28px" @click="downOpen(scope.row)"></i>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </el-main>
+    </div>
+
+<!--    搜索界面-->
+    <div id = "selectdetails" v-else-if = "selected === 6">
+      <el-main class="myfirst" style="width: 1250px !important; flex: 1;margin: auto">
+        <div>
+          <template>
+            <el-tabs v-model="activeName" @tab-click="handleClick">
+              <el-tab-pane label="专  辑" name="first">
+                <h1 style="display: flex; width: 1200px; margin: auto; align-items: center; justify-content: center; text-align: center; height: 70px; font-size: 19px; font-weight: bold; color: #333; background-color: #E9EEF3">搜&nbsp索&nbsp结&nbsp果</h1>
+                <template style="display: flex;justify-content: center;align-items: center;">
+                  <el-row :gutter="0" justify="space-between">
+                    <el-col :span="6"  v-for="(td, index) in tableData" :key="index">
+                      <div class="album-wrapper" @click="AlbumDetails(td.id)">
+                        <img class="album-image" :src="'../imgs/alumb/' + td.img" style="height: 220px; width: 220px; border-radius: 15px" alt="album1">
+                        <div class="play-button">
+                          <i class="el-icon-video-play"  style="font-size: 94px;"></i>
+                        </div>
+                        <p class="alumb-name" style="display: flex; margin-left: 60px; line-height: 1.2;margin-top: -60px;margin-bottom: 30px; font-size: 17px; font-family: 华光黑变_CNKI,serif; font-weight: bold; white-space: nowrap;">{{ td.name }}</p>
+                        <p class="alumb-name" style="display: flex; margin-left: 60px; line-height: 3;margin-top: -40px;margin-bottom: 30px; font-size: 16px; font-family: 'Times New Roman',serif; white-space: nowrap; text-overflow: ellipsis;">{{ td.time }}</p>
+                      </div>
+                    </el-col>
+                  </el-row>
+                </template>
+                <!--分页工具条-->
+                <el-pagination
+                        @size-change="handleSizeChange"
+                        @current-change="handleCurrentChange"
+                        :current-page="currentPage"
+                        :page-sizes="[5, 10, 15, 20]"
+                        :page-size="15"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        :total="totalCount">
+                </el-pagination>
+              </el-tab-pane>
+              <el-tab-pane label="单  曲" name="second"  style="justify-content: center; align-items: center; align-content: center; margin: auto;">
+                <h1 style="display: flex; width: 1250px; margin: auto; align-items: center; justify-content: center; text-align: center; height: 40px; font-size: 19px; font-weight: bold; color: #333; background-color: #E9EEF3">搜&nbsp索&nbsp结&nbsp果</h1>
+                <template>
+                  <el-table
+                          :data="songdetails"
+                          style="width: 100%"
+                          stripe
+                          :header-cell-style="{textAlign: 'center', height: '10px', fontSize:'17px', fontWeight: 'bold', background: '#e4e4e4'}"
+                          :cell-style="{textAlign: 'center', fontSize: '14px', fontWeight: 'bold'}"
+                          :header-row-style="{ height: '10px' }"
+                  >
+                    <el-table-column prop="img" label="" width="130">
+                      <template slot-scope="scope">
+                        <img :src="`../imgs/alumb/`+scope.row.img" style="width: 58px; height: 58px;">
+                      </template>
+                    </el-table-column>
+                    <el-table-column
+                            prop="name"
+                            label="歌曲名"
+                            width="230">
+                    </el-table-column>
+                    <el-table-column
+                            prop="singerName"
+                            label="歌手名"
+                            width="140">
+                    </el-table-column>
+                    <el-table-column
+                            prop="albumName"
+                            label="专辑名"
+                            width="300">
+                    </el-table-column>
+                    <el-table-column
+                            prop="duration"
+                            label="时长"
+                            width="130"
+                            :cell-style="{textAlign: 'center', fontWeight: 'normal'}">
+                    </el-table-column>
+                    <el-table-column align="center" label="操作" width="280">
+                      <template slot-scope="scope">
+                        <i class="el-icon-video-play" style="font-size:28px" @click="playchange(scope.row)"></i>
+                        <i class="far fa-heart" :style="{display: scope.row.isCollect ? 'none' : 'inline-block'}" @click="addCollect(scope.row)"></i>
+                        <i class="fas fa-heart" style="color: #f56c6c;" :style="{display: scope.row.isCollect ? 'inline-block' : 'none'}" @click="deleteCollect(scope.row)"></i>&nbsp;
+                        <i class="el-icon-download" style="font-size:28px" @click="downOpen(scope.row)"></i>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </template>
+                <el-pagination
+                        @size-change="handleSongSizeChange"
+                        @current-change="handleSongCurrentChange"
+                        :current-page="currentSongPage"
+                        :page-sizes="[5, 10, 15, 20]"
+                        :page-size="10"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        :total="totalSongCount"
+                        style="margin-top: 40px">
+                </el-pagination>
+              </el-tab-pane>
+              <el-tab-pane label="歌  手" name="third" >
+                <h1 style="display: flex; width: 1200px; margin: auto; align-items: center; justify-content: center; text-align: center; height: 40px; font-size: 19px; font-weight: bold; color: #333; background-color: #E9EEF3">搜&nbsp索&nbsp结&nbsp果</h1>
+                <template style="display: flex;justify-content: center;align-items: center;">
+                  <el-row :gutter="0" justify="space-between">
+                    <el-col :span="8"  v-for="(sin, index) in singer" :key="index">
+                      <div class="album-wrapper" @click="selectsingerdetails(sin)">
+                        <img class="album-image" :src="'../imgs/singershow/' + sin.img" style="height: 240px; width: 240px; border-radius: 50%">
+                        <p class="alumb-name" style="line-height: 3;margin-top: -60px;margin-bottom: 30px; font-size: 17px; font-family: 华光黑变_CNKI,serif; font-weight: bold; white-space: nowrap;">{{ sin.name }}</p>
+                        <p class="alumb-name" style="line-height: 3;margin-top: -40px;margin-bottom: 30px; font-size: 16px; font-family: 'Times New Roman',serif; white-space: nowrap; text-overflow: ellipsis;">单曲：{{ sin.songNumber }}&nbsp&nbsp&nbsp&nbsp专辑：{{ sin.albumNumber }}</p>
+                      </div>
+                    </el-col>
+                  </el-row>
+                </template>
+                <!--分页工具条-->
+                <el-pagination
+                        @size-change="handleSingerSizeChange"
+                        @current-change="handleSingerCurrentChange"
+                        :current-page="currentSingerPage"
+                        :page-sizes="[5, 10, 15, 20]"
+                        :page-size="9"
+                        layout="total, sizes, prev, pager, next, jumper"
+                        :total="totalSingerCount">
+                </el-pagination>
+              </el-tab-pane>
+            </el-tabs>
+          </template>
+        </div>
+      </el-main>
+    </div>
+
+<!--    歌手详情页-->
+    <div id="singerdetails" v-else-if="selected === 7">
+      <el-header style="text-align: right; font-size: 16px; margin-top:53px !important; background-color: #d1dbe5!important;">
+        <span class="back" @click="back2"><i class="el-icon-arrow-left">返回</i></span>
+      </el-header>
+      <el-main class="myfirst" style="width: 1250px!important; flex: 1;margin: auto;min-height: 130vh;">
+        <div>
+          <div style="display: flex; margin: 60px auto 0; margin-top: -15px; width: 100%; border-radius: 3%; background-color: #f7f7f7!important;">
+            <img :src="`../imgs/singer/`+singerdetails.img" style="border-radius: 3%; object-fit: cover; object-position: top; width: 100%; height: 360px;" />
+          </div>
+          <div style="display:flex; height: 80px">
+            <!-- other content here -->
+            <h1 style="margin-top: -40px; font-size: 33px; margin-left: 0;">{{singerdetails.name}}</h1>
+          </div>
+          <div style="display:flex; height: 5px">
+            <p style="float: left; margin-top: -60px; margin-left: 2px;font-size: 14px;color: #666666;white-space: nowrap;">粉丝数：{{singerdetails.fans}}</p>
+          </div>
+          <template>
+            <el-tabs v-model="activeName1" @tab-click="handleClick">
+              <el-tab-pane label="详  情" name="first">
+                <br>
+                <div style="display: grid; grid-template-columns: 200px;">
+                  <div style="width: 1350px; margin-left: -140px; margin-top:-200px">
+                    <div style="height: 50px;">
+                      <span style="display: inline-block; width: 100px; text-align: left; font-weight: bold;">别名:</span>
+                      <span style="display: inline-block; width: 850px; text-align: left; font-family: 微软雅黑,serif">{{singerdetails.fname}}</span>
+                    </div>
+                    <div style="height: 50px;">
+                      <span style="display: inline-block; width: 100px; text-align: left; font-weight: bold;">国籍:</span>
+                      <span style="display: inline-block; width: 850px; text-align: left; font-family: 微软雅黑,serif">{{singerdetails.nationality}}</span>
+                    </div>
+                    <div style="height: 50px;">
+                      <span style="display: inline-block; width: 100px; text-align: left; font-weight: bold;">出生地:</span>
+                      <span style="display: inline-block; width: 850px; text-align: left; font-family: 微软雅黑,serif">{{singerdetails.birthplace}}</span>
+                    </div>
+                    <div style="height: 50px;">
+                      <span style="display: inline-block; width: 100px; text-align: left; font-weight: bold;">职业:</span>
+                      <span style="display: inline-block; width: 850px; text-align: left; font-family: 微软雅黑,serif">{{singerdetails.career}}</span>
+                    </div>
+                    <div style="height: 50px;">
+                      <span style="display: inline-block; width: 100px; text-align: left; font-weight: bold;">代表作品:</span>
+                      <span style="display: inline-block; width: 850px; text-align: left; font-family: 微软雅黑,serif">{{singerdetails.masterpiece}}</span>
+                    </div>
+                    <div style="height:auto;">
+                      <span style="display: inline-block; width: 100px; text-align: left; vertical-align: top; font-weight: bold;">主要成就:</span>
+                      <span style="display: inline-block; width: 850px; text-align: left; vertical-align: top; margin-top: 61px; line-height: 2.4;">{{singerdetails.achievements}}</span>
+                    </div>
+                    <div style="height:auto; margin-top: -50px">
+                      <span style="display: inline-block; width: 100px;text-align: left; vertical-align: top; font-weight: bold;">个人介绍:</span>
+                      <span style="display: inline-block; width: 850px; text-align: left; vertical-align: top; margin-top: 60px;line-height: 2.4;">{{singerdetails.history}}</span>
+                    </div>
+                  </div>
+                </div>
+              </el-tab-pane>
+              <el-tab-pane label="单  曲" name="second"  style="justify-content: center; align-items: center; align-content: center; margin: auto;">
+                <template>
+                  <el-table
+                          :data="songdetails"
+                          style="width: 100%"
+                          stripe
+                          :header-cell-style="{textAlign: 'center', height: '10px', fontSize:'17px', fontWeight: 'bold', background: '#e4e4e4'}"
+                          :cell-style="{textAlign: 'center', fontSize: '14px', fontWeight: 'bold'}"
+                          :header-row-style="{ height: '10px' }"
+                  >
+                    <el-table-column prop="img" label="" width="130">
+                      <template slot-scope="scope">
+                        <img :src="`../imgs/alumb/`+scope.row.img" style="width: 58px; height: 58px;">
+                      </template>
+                    </el-table-column>
+                    <el-table-column
+                            prop="name"
+                            label="歌曲名"
+                            width="230">
+                    </el-table-column>
+                    <el-table-column
+                            prop="singerName"
+                            label="歌手名"
+                            width="140">
+                    </el-table-column>
+                    <el-table-column
+                            prop="albumName"
+                            label="专辑名"
+                            width="300">
+                    </el-table-column>
+                    <el-table-column
+                            prop="duration"
+                            label="时长"
+                            width="130"
+                            :cell-style="{textAlign: 'center', fontWeight: 'normal'}">
+                    </el-table-column>
+                    <el-table-column align="center" label="操作" width="280">
+                      <template slot-scope="scope">
+                        <i class="el-icon-video-play" style="font-size:28px" @click="playchange(scope.row)"></i>
+                        <i class="far fa-heart" :style="{display: scope.row.isCollect ? 'none' : 'inline-block'}" @click="addCollect(scope.row)"></i>
+                        <i class="fas fa-heart" style=" color: #f56c6c;" :style="{display: scope.row.isCollect ? 'inline-block' : 'none'}" @click="deleteCollect(scope.row)"></i>&nbsp;
+                        <i class="el-icon-download" style="font-size:28px" @click="downOpen(scope.row)"></i>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </template>
+              </el-tab-pane>
+              <el-tab-pane label="专  辑" name="third" >
+                <template style="display: flex;justify-content: center;align-items: center;">
+                  <el-row :gutter="0" justify="space-between">
+                    <el-col :span="6"  v-for="(td, index) in tableData" :key="index">
+                      <div class="album-wrapper" @click="AlbumDetails(td.id)">
+                        <img class="album-image" :src="'../imgs/alumb/' + td.img" style="height: 220px; width: 220px; border-radius: 15px" alt="album1">
+                        <div class="play-button">
+                          <i class="el-icon-video-play"  style="font-size: 94px;"></i>
+                        </div>
+                        <p class="alumb-name" style="display: flex; margin-left: 60px; line-height: 1.2;margin-top: -60px;margin-bottom: 30px; font-size: 17px; font-family: 华光黑变_CNKI,serif; font-weight: bold; white-space: nowrap;">{{ td.name }}</p>
+                        <p class="alumb-name" style="display: flex; margin-left: 60px; line-height: 3;margin-top: -40px;margin-bottom: 30px; font-size: 16px; font-family: 'Times New Roman',serif; white-space: nowrap; text-overflow: ellipsis;">{{ td.time }}</p>
+                      </div>
+                    </el-col>
+                  </el-row>
+                </template>
+              </el-tab-pane>
+            </el-tabs>
+          </template>
+        </div>
+      </el-main>
+    </div>
+
+<!--    返回顶部-->
+    <el-backtop :bottom="100" :right="100" style="color: #303133"></el-backtop>
+
+    <el-footer><p>版权所有 &copy; 2023 MUSIC音乐专辑网</p></el-footer>
+
+<!--    播放器页面-->
+    <div class="player-wrapper">
+      <div class="player-info">
+        <div class="player-img">
+          <img :src="`../imgs/alumb/`+this.playing.img" alt="歌曲封面" :class="{rotate: isPlaying}">
+        </div>
+        <div class="player-text">
+          <div class="player-song">{{this.playing.name}}</div>
+          <div class="player-singer">{{this.playing.singerName}}</div>
+        </div>
+      </div>
+      <div class="player-control">
+        <div class="player-progress" id="player-progress">
+          <div id="progress-bar" class="player-progress-bar"></div>
+        </div>
+        <div class="player-time">
+          <div class="player-current-time" id="current-time">00:00</div>
+          <div class="player-total-time" id="total-time">{{this.playing.duration}}</div>
+        </div>
+        <div class="player-buttons">
+          <audio id="myAudio" :src="`/music/`+this.playing.file"></audio>
+          <div class="player-button player-button-prev" @click="preplay()"></div>
+          <div class="player-button player-button-play" id="play" @click="play()"></div>
+          <div class="player-button player-button-pause" id="close" @click="cplay()" style="display: none"></div>
+          <div class="player-button player-button-next" @click="nextplay()"></div>
+        </div>
+        <div class="player-volume">
+          <div class="player-volume-icon"></div>
+          <span class="volume-icon" id="vicon1"><i class="fas fa-volume-up" @click="closeVolume1()"></i></span>
+          <span class="volume-icon" id="vicon2" style="display: none" @click="closeVolume2()"><i class="fas fa-volume-mute"></i></span>
+          <span class="volume-icon" id="vicon3" style="display: none"><i class="fas fa-volume-down"></i></span>&nbsp;
+          <input type="range" min="0" max="1" step="0.01" value="1" id="slider" class="player-volume-slider" @change="closeVolume3">
+        </div>
+      </div>
+    </div>
+
+  </el-container>
+</div>
+
+<script src="../js/axios-0.18.0.js"></script>
+<script src="../js/vue.js"></script>
+<script src="../element-ui/lib/index.js"></script>
+<!-- 引入 Swiper 库 -->
+<script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+<link rel="stylesheet" href="../element-ui/lib/theme-chalk/index.css">
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+<script>
+  new Vue({
+    el:"#app",
+    created(){
+      this.getSession();
+      if(this.userdata.username != ''){
+        document.getElementById("welcome").style.display='';
+        document.getElementById("gologin").style.display='none';
+        document.getElementById("userimage").style.display='';
+      }else{
+        document.getElementById("gologin").style.display='';
+        document.getElementById("welcome").style.display='none';
+        document.getElementById("userimage").style.display='none';
+      }
+    },
+    mounted: function() {
+      this.selectHotSong();
+      this.selectAll();
+    },
+
+    data(){
+      return {
+        userdata:{},
+        isPlaying: false,
+        //用于检验用户从哪个页面进入，以便返回的标志
+        flag: 0,
+        flag2: 0,
+        //正在播放的歌曲的信息
+        playing:{
+          id: 1,
+          name: '晴天',
+          singerName: '周杰伦',
+          duration: "04:29",
+          file: 's1.mp3',
+          img: 'a1.png',
+        },
+        //专辑表格数据
+        tableData:[],
+        //总记录数
+        totalCount: 100,
+        totalSongCount: 100,
+        totalSingerCount: 100,
+        //当前页码
+        currentPage: 1,
+        currentSongPage:1,
+        currentSingerPage:1,
+        //一页显示几条
+        pageSize: 12,
+        pageSongSize: 10,
+        pageSingerSize: 9,
+        //点开某个详细专辑信息的数据模型
+        albumdetails: {},
+        //搜索专辑模型数据
+        selectAlbum:[],
+        //搜索模型数据
+        selectImfor: '',
+        //歌曲模型数据
+        songdetails:[],
+        //搜索歌曲模型数据
+        selectsongdetails:[],
+        //收藏歌曲数据模型
+        collect: [],
+        //搜索歌曲模型数据
+        selectsongdetails: [],
+        //歌手模型数据
+        singer: [],
+        //歌手详情页数据模型
+        singerdetails:{},
+        //搜索歌手模型数据
+        selectsinger: [],
+        selected: 1, // 绑定的变量，用于控制显示哪个el-container组件
+        fits: 'fill',
+        url: "../imgs/user.png",
+        carouselHeight: "270",
+        carouselItems: [
+          "../imgs/adver/adver1.png",
+          "../imgs/adver/adver2.png",
+          "../imgs/adver/adver3.png",
+          "../imgs/adver/adver4.png"
+        ],
+        circleUrl: '',
+        size: "medium",
+        albums: [
+          {
+            id: '1',
+            img:'../imgs/alumbshow/alumb6.png',
+            name: '叶惠美'
+          },
+          {
+            id: '6',
+            img:'../imgs/alumbshow/alumb7.png',
+            name: '哎哟，不错哦'
+          },
+          {
+            id: '8',
+            img:'../imgs/alumbshow/alumb5.png',
+            name: '八度空间'
+          },
+          {
+            id: '23',
+            img:'../imgs/alumbshow/alumb8.png',
+            name: '周杰伦的床边故事'
+          },
+          {
+            id: '5',
+            img:'../imgs/alumbshow/alumb1.png',
+            name: 'Jay'
+          },
+          {
+            id: '3',
+            img:'../imgs/alumbshow/alumb2.png',
+            name: '魔杰座'
+          },
+          {
+            id: '7',
+            img:'../imgs/alumbshow/alumb3.png',
+            name: '范特西'
+          },
+          {
+            id: '9',
+            img:'../imgs/alumbshow/alumb4.png',
+            name: 'U 87'
+          },
+        ],
+        ids:[19, 43, 67, 54, 60, 59],
+        songs: [],
+        singers:[
+          {
+            id: '1',
+            avatarUrl:'../imgs/singershow/singer1.png',
+            name:'周杰伦',
+            songsnum:'830',
+            albumnum:'36',
+            ReAlbumUrlimg:'../imgs/ReAlumb/ReAlumb1.jpg',
+            ReAlbumName:'最伟大的作品',
+          },
+          {
+            id: '2',
+            avatarUrl:'../imgs/singershow/singer2.png',
+            name:'陈奕迅',
+            songsnum:'1364',
+            albumnum:'127',
+            ReAlbumUrlimg:'../imgs/ReAlumb/ReAlumb2.png',
+            ReAlbumName:'尘大师',
+          },
+          {
+            id: '3',
+            avatarUrl:'../imgs/singershow/singer3.png',
+            name:'林俊杰',
+            songsnum:'807',
+            albumnum:'62',
+            ReAlbumUrlimg:'../imgs/ReAlumb/ReAlumb3.png',
+            ReAlbumName:'In The Joy',
+          }
+        ],
+        activeName: 'second',
+        activeName1: 'first',
+      }
+    },
+
+    methods:{
+      getSession(){
+        axios.get("/login/getSession").then(resp => {
+          axios.get("/users/id/"+resp.data.data.id).then((resp)=>{
+            this.userdata = resp.data.data;
+            this.circleUrl =  this.userdata.imgs !==''&&this.userdata.imgs!=null ? '../imgs/head/'+this.userdata.imgs : 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png';
+          })
+        })
+      },
+
+      handleItemClick(index){
+        index = index+1
+        if(index==4){
+          index = 3
+        }else if(index==3){
+          index = 7
+        }
+        const sin = {id: index}
+        this.selectsingerdetails(sin)
+      },
+      selectHotSong(){
+        var _this = this;
+        axios.get("/songs/songids/"+this.ids).then((resp)=>{
+          this.songs = resp.data.data;
+        })
+      },
+      goUserIM(){
+        window.location.href = "http://localhost/pages/userimformation.html";
+      },
+
+      firstSelect(index){
+        this.selected = parseInt(index);
+        window.scrollTo(0, 0);
+      },
+      //用户点下登录
+      login(){
+        window.location.href = "http://localhost/pages/login.html"
+      },
+      register(){
+        window.location.href = "http://localhost/pages/register.html"
+      },
+      playchange(row){
+        var _this = this;
+        axios.get("/songs/song/"+row.id).then((resp)=>{
+          this.playing = resp.data.data;
+          this.$nextTick(() => {
+            this.play();
+          });
+        })
+      },
+      play(){
+        var _this = this;
+        this.isPlaying = true;
+        var audio = document.getElementById("myAudio");
+        // 播放音频
+        audio.play();
+        document.getElementById("play").style.display='none';
+        document.getElementById("close").style.display='';
+        //设置播放时图片旋转
+        const img = document.querySelector('.player-img img');
+        img.classList.add('playing');
+        //监听音频播放结束事件
+        audio.addEventListener("ended", ()=>{
+          _this.nextplay();
+        });
+      },
+
+      //暂停播放
+      cplay(){
+        this.isPlaying = false;
+        var audio = document.getElementById("myAudio");
+        // 暂停音频
+        audio.pause();
+        document.getElementById("play").style.display='';
+        document.getElementById("close").style.display='none';
+        const img = document.querySelector('.player-img img');
+        img.classList.remove('playing');
+      },
+      //播放上一首（按照id排序）
+      preplay(){
+        var _this = this;
+        //计算上一首歌曲在列表中的索引
+        this.cplay();
+        if(this.playing.id-1 != 0){
+          this.playing.id = (this.playing.id-1)%this.totalSongCount;
+        }else{
+          this.playing.id = 1;
+        }
+        axios.get("/songs/song/"+this.playing.id).then((resp)=>{
+          this.playing = resp.data.data;
+          this.$nextTick(() => {
+            this.play();
+          });
+        })
+      },
+      //播放下一首（按照id排序）
+      nextplay(){
+        var _this = this;
+        this.cplay();
+        //计算下一首歌曲在列表中的索引
+        if(this.playing.id+1 != this.totalSongCount){
+          this.playing.id = (this.playing.id+1)%this.totalSongCount;
+        }else{
+          this.playing.id = this.totalSongCount
+        }
+        axios.get("/songs/song/"+this.playing.id).then((resp)=>{
+          this.playing = resp.data.data;
+          this.$nextTick(() => {
+            this.play();
+          });
+        })
+      },
+
+      closeVolume1(){
+        document.getElementById("vicon1").style.display='none';
+        document.getElementById('vicon2').style.display='';
+        document.getElementById('vicon3').style.display='none';
+        document.querySelector('.player-volume-slider').value='0';
+        audio.volume = document.querySelector('.player-volume-slider').value;
+      },
+      closeVolume2(){
+        document.getElementById("vicon1").style.display='';
+        document.getElementById('vicon2').style.display='none';
+        document.getElementById('vicon3').style.display='none';
+        document.querySelector('.player-volume-slider').value='1';
+        audio.volume = document.querySelector('.player-volume-slider').value;
+      },
+      closeVolume3(event){
+        if(event.target.value <= 0.4){
+          document.getElementById("vicon1").style.display='none';
+          document.getElementById('vicon2').style.display='none';
+          document.getElementById('vicon3').style.display='';
+        }
+      },
+
+      //查询专辑分页数据的方法
+      selectAll(){
+        var _this = this;
+        if(this.selectImfor==''){
+          axios.get("/albums/selectAll/"+this.currentPage+"/"+this.pageSize+"/"+null).then((resp)=>{
+            this.tableData = resp.data.data.rows;
+            this.totalCount = resp.data.data.totalCount;
+          })
+        }else{
+          axios.get("/albums/selectAll/"+this.currentPage+"/"+this.pageSize+"/"+this.selectImfor).then((resp)=>{
+            this.tableData = resp.data.data.rows;
+            this.totalCount = resp.data.data.totalCount;
+          })
+        }
+      },
+      //查询歌曲分页数据的方法
+      selectSongAll(){
+        var _this = this;
+        if(this.selectImfor==''){
+          axios.get("/songs/selectAll/"+this.currentSongPage+"/"+this.pageSongSize+"/"+null+"/"+this.userdata.id).then((resp)=>{
+            this.songdetails = resp.data.data.rows;
+            this.totalSongCount = resp.data.data.totalCount;
+          })
+        }else{
+          axios.get("/songs/selectAll/"+this.currentPage+"/"+this.pageSize+"/"+this.selectImfor+"/"+this.userdata.id).then((resp)=>{
+            this.songdetails = resp.data.data.rows;
+            this.totalSongCount = resp.data.data.totalCount;
+          })
+        }
+      },
+
+      //查询歌手分页数据的方法
+      selectSingerAll(){
+        var _this = this;
+        if(this.selectImfor==''){
+          axios.get("/singers/selectAll/"+this.currentSingerPage+"/"+this.pageSingerSize+"/"+null).then((resp)=>{
+            this.singer = resp.data.data.rows;
+            this.totalSingerCount = resp.data.data.totalCount;
+          })
+        }else{
+          axios.get("/singers/selectAll/"+this.currentSingerPage+"/"+this.pageSingerSize+"/"+this.selectImfor).then((resp)=>{
+            this.singer = resp.data.data.rows;
+            this.totalSingerCount = resp.data.data.totalCount;
+          })
+        }
+      },
+
+      //分页
+      handleSizeChange(val) {
+        //console.log(`每页条`);
+        //重新设置每页显示条数
+        this.pageSize = val;
+        this.selectAll();
+      },
+      handleCurrentChange(val) {
+        //console.log(`当前页:`);
+        //重新设置当前页码
+        this.currentPage = val;
+        this.selectAll();
+      },
+
+      // 复选框选中后执行的方法
+      handleSelectionChange(val) {
+        this. multipleSelection = val;
+      },
+
+      //点开专辑详情页执行的方法
+      AlbumDetails(id){
+        var _this=this;
+        this.AlbumSong(id);
+        axios.get("/albums/id/"+id).then((resp)=>{
+          this.albumdetails = resp.data.data;
+          if(_this.selected==2){
+            _this.flag=1;
+          }else if(_this.selected==6){
+            _this.flag=2;
+          }else if(_this.selected==7){
+            _this.flag=3;
+          }else if(_this.selected==1){
+            _this.flag=4;
+          }
+          _this.selected = 5;
+          window.scrollTo(0, 0);
+        })
+      },
+
+      //点开歌手详情页执行的方法
+      selectsingerdetails(sin){
+        var _this=this;
+        this.SingerAlbum(sin.id);
+        this.SingerSong(sin.id);
+        axios.get("/singers/id/"+sin.id).then((resp)=>{
+          this.singerdetails = resp.data.data;
+          if(_this.selected==4){
+            _this.flag2 = 1;
+          }else if(_this.selected==6){
+            _this.flag2 = 2;
+          }else if(_this.selected==1){
+            _this.flag2 = 3;
+          }
+          _this.selected = 7;
+          window.scrollTo(0, 0);
+        })
+      },
+
+      //在歌手详情页展示歌手专辑的方法
+      SingerAlbum(id){
+        var _this = this;
+        axios.get("/albums/singer/"+id).then((resp)=>{
+          this.tableData = resp.data.data;
+        })
+      },
+      //在歌手详情页展示歌手歌曲的方法
+      SingerSong(id){
+        var _this = this;
+        axios.get("/songs/singer/"+id).then((resp)=>{
+          this.songdetails = resp.data.data;
+        })
+      },
+      //在专辑详情页展示歌曲的方法
+      AlbumSong(id){
+        var _this = this;
+        axios.get("/songs/album/"+id).then((resp)=>{
+          this.songdetails = resp.data.data;
+        })
+      },
+
+      back(){
+        if(this.flag==1){
+          this.selected = 2;
+          this.selectA();
+        }else if(this.flag==2){
+          this.selected = 6;
+        }else if(this.flag==3){
+          this.selected = 7;
+        }else if(this.flag==4){
+          this.selected = 1;
+        }
+        this.flag = 0;
+      },
+      back2(){
+        if(this.flag2==1){
+          this.selected=4;
+        }else if(this.flag2==2){
+          this.selected=6;
+        }else if(this.flag2==3){
+          this.selected=1;
+        }
+        this.flag2=0;
+      },
+
+      //歌曲分页
+      handleSongSizeChange(val) {
+        //console.log(`每页条`);
+        //重新设置每页显示条数
+        this.pageSongSize = val;
+        this.selectSongAll();
+      },
+      handleSongCurrentChange(val) {
+        //console.log(`当前页:`);
+        //重新设置当前页码
+        this.currentSongPage = val;
+        this.selectSongAll();
+      },
+      handleCollectSizeChange(val){
+        this.pageCollectSize = val;
+        this.selectCollectAll();
+      },
+      handleCollectCurrentChange(val){
+        this.currentCollectPage = val;
+        this.selectCollectAll();
+      },
+      //歌手分页
+      handleSingerSizeChange(val) {
+        //console.log(`每页条`);
+        //重新设置每页显示条数
+        this.pageSingerSize = val;
+        this.selectSingerAll();
+      },
+      handleSingerCurrentChange(val) {
+        //console.log(`当前页:`);
+        //重新设置当前页码
+        this.currentSingerPage = val;
+        this.selectSingerAll();
+      },
+
+      downOpen(row) {
+        this.$alert('确认下载吗（交钱）', '温馨提示', {
+          confirmButtonText: '确定',
+          beforeClose: (action, instance, done) => {
+            if (action === 'confirm') {
+                // 下载文件
+                let link = document.createElement('a')
+                link.href = `http://localhost/music/` + row.file
+                link.download = row.name
+                link.click()
+                this.$message({
+                  type: 'success',
+                  message: '操作成功'
+                });
+              done();
+            } else {
+              done();
+            }
+          }
+        });
+      },
+
+      search(){
+        this.selectA();
+        this.selected=6;
+        window.scrollTo(0, 0);
+      },
+
+      handleClick(tab, event) {
+        console.log(tab, event);
+      },
+      //点击首页的专辑的
+      //alumbshow1
+      empty(){
+        this.selectImfor="";
+        this.selectA();
+      },
+      selectA(){
+        this.currentPage = 1;
+        this.currentSongPage = 1;
+        this.currentSingerPage = 1;
+        this.pageSize = 12;
+        this.pageSongSize = 10;
+        this.pageSingerSize = 9;
+        this.selectAll();
+        this.selectSongAll();
+        this.selectSingerAll();
+        this.selectCollectAll();
+        this.selectHotSong();
+      },
+
+      openA(id){
+        this.AlbumDetails(id)
+      },
+
+      openS(singer){
+        this.selectsingerdetails(singer)
+      },
+
+      lookmore1(){
+        this.selected=2;
+        window.scrollTo(0, 0);
+      },
+      lookmore2(){
+        this.selected=3;
+        window.scrollTo(0, 0);
+      },
+      lookmore3(){
+        this.selected=4;
+        window.scrollTo(0, 0);
+      },
+
+      //添加收藏的方法
+      addCollect(row){
+        var _this = this;
+        var US = {uId: this.userdata.id, sId: row.id}
+        axios.post("/songs/addCollect", US).then((resp)=>{
+          if(_this.selected==3){
+            _this.selectSongAll();
+          }else if(_this.selected==5){
+            _this.AlbumSong(_this.albumdetails.id);
+          }else if(_this.selected==6){
+            _this.selectSongAll();
+          }else if(_this.selected==7){
+            _this.SingerSong(_this.singerdetails.id);
+          }else if(_this.selected==8){
+            _this.selectCollectAll();
+          }else if(_this.selected==1){
+            _this.selectHotSong();
+          }
+        })
+      },
+
+      //取消收藏方法
+      deleteCollect(row){
+        var _this = this;
+        axios.delete("/songs/deleteCollect/"+this.userdata.id+"/"+row.id).then((resp)=>{
+          if(_this.selected==3){
+            _this.selectSongAll();
+          }else if(_this.selected==5){
+            _this.AlbumSong(_this.albumdetails.id);
+          }else if(_this.selected==6){
+            _this.selectSongAll();
+          }else if(_this.selected==7){
+            _this.SingerSong(_this.singerdetails.id);
+          }else if(_this.selected==8){
+            _this.selectCollectAll();
+          }else if(_this.selected==1){
+            _this.selectHotSong();
+          }
+        })
+      },
+      //搜索所有收藏歌曲
+      selectCollectAll(){
+        var _this = this;
+        axios.get("/songs/user/"+this.userdata.id).then((resp)=>{
+          this.collect = resp.data.data;
+        })
+      }
+    },
+
+    components: {
+      'el-backtop': ELEMENT.Backtop,
+    },
+  })
+
+  // 获取音频元素和播放时间进度条元素
+  const audio = document.querySelector("#myAudio");
+  const progressBar = document.querySelector("#progress-bar");
+  const progress = document.querySelector('.player-progress');
+
+  //记录鼠标点击进度条时的各种数据
+  let isDragging = false;
+  let progressWidth = progress.offsetWidth;
+  let progressLeft = progress.getBoundingClientRect().left;
+
+  progressBar.addEventListener('mousedown', e => {
+    isDragging = true;
+    updateProgressBar(e.clientX);
+  });
+
+  document.addEventListener('mousemove', e => {
+    if(isDragging){
+      updateProgressBar(e.clientX);
+    }
+  });
+
+  document.addEventListener('mouseup', e => {
+    if(isDragging){
+      isDragging = false;
+      updateProgressBar(e.clientX);
+      const newTime = audio.duration * (e.clientX-progressLeft) / progressWidth;
+      audio.currentTime = newTime;
+    }
+  });
+
+  function updateProgressBar(clientX){
+    const progressBarWidth = Math.min(Math.max(clientX-progressLeft, 0), progressWidth);
+    progressBar.style.width = progressBarWidth+"px";
+  }
+
+  // 获取歌曲总时长和当前时间
+  const currenttime = document.querySelector("#current-time");
+  const totaltime = document.querySelector("#total-time");
+
+  // 在 timeupdate 事件中更新播放时间进度条
+  audio.addEventListener('timeupdate', () => {
+    // 计算当前播放时间占总时间的百分比
+    const percent = (audio.currentTime / audio.duration) * 100;
+    // 获取当前播放时间
+    const cT = audio.currentTime;
+    const tT = audio.duration;
+
+    currenttime.textContent = formatTime(cT);
+    totaltime.textContent = formatTime(tT);
+
+    // 更新播放时间进度条的宽度
+    progressBar.style.width = percent+"%";
+    if(percent == 100){
+      document.getElementById("play").style.display='';
+      document.getElementById("close").style.display='none';
+      progressBar.style.width = '0%';
+      currenttime.textContent = '00:00';
+    }
+
+  });
+
+  function formatTime(time){
+    const minuters = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    const min = padZero(minuters);
+    const sec = padZero(seconds);
+    return min+":"+sec;
+  }
+  function padZero(num){
+    return num < 10 ? "0"+num : num;
+  }
+
+  const volumeSlider = document.querySelector(".player-volume-slider");
+  volumeSlider.addEventListener("input", function() {
+    audio.volume = this.value;
+    if(this.value == 0){
+      document.getElementById("vicon1").style.display='none';
+      document.getElementById('vicon2').style.display='';
+    }else{
+      document.getElementById("vicon1").style.display='';
+      document.getElementById('vicon2').style.display='none';
+    }
+  });
+</script>
+</body>
+</html>

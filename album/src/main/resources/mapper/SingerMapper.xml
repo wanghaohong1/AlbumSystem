@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.whh.dao.SingerDao">
+    <resultMap id="singerMapper" type="singer">
+        <result property="sin_id" column="sin_id"/>
+        <result property="sin_name" column="sin_name"/>
+        <result property="masterpiece" column="masterpiece"/>
+        <result property="fans" column="fans"/>
+    </resultMap>
+
+
+    <select id="selectSingerBypageAndCondition" resultMap="singerMapper">
+        select *
+        from tb_singer
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_singer.sin_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_singer.masterpiece like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_singer.fans like #{selectImfor}
+            </if>
+        </where>
+        limit #{begin}, #{size}
+    </select>
+
+    <select id="selectTotalCountByCondition" resultType="java.lang.Integer">
+        select count(*)
+        from tb_singer
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_singer.sin_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_singer.masterpiece like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_singer.fans like #{selectImfor}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectById" resultMap="singerMapper">
+        select *
+        from tb_singer
+        where tb_singer.sin_id = #{id};
+    </select>
+
+    <update id="update">
+        update tb_singer
+        set sin_name=#{sin_name}, masterpiece=#{masterpiece},fans=#{fans}
+        where tb_singer.sin_id = #{sin_id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from tb_singer
+        where tb_singer.sin_id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

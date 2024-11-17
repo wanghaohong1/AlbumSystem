@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.whh.dao.UserDao">
+    <resultMap id="user" type="user">
+        <result property="user_id" column="user_id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="sex" column="sex"/>
+        <result property="phone" column="phone"/>
+        <result property="email" column="email"/>
+        <result property="city" column="city"/>
+    </resultMap>
+
+    <select id="selectByPageAndCondition" resultMap="user">
+        select *
+        from tb_user
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_user.username like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_user.sex like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_user.city like #{selectImfor}
+            </if>
+        </where>
+        limit #{begin}, #{size}
+    </select>
+
+    <select id="selectTotalCountByCondition" resultType="java.lang.Integer">
+        select count(*)
+        from tb_user
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_user.username like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_user.sex like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or tb_user.city like #{selectImfor}
+            </if>
+        </where>
+    </select>
+    <!--
+        根据用户名和密码查询用户对象，判断是否能登录
+    -->
+    <select id="selectUser" resultMap="user">
+        select * from tb_user where username=#{username} and password=#{password};
+    </select>
+
+<!--
+    根据用户名查询用户对象，判断用户是否已存在，注册用
+-->
+    <select id="selectByUserName" resultMap="user">
+        select * from tb_user where username=#{username};
+    </select>
+
+    <select id="selectById" resultMap="user">
+        select *
+        from tb_user
+        where tb_user.user_id = #{id}
+    </select>
+
+    <!--
+        添加功能Sql语句
+    -->
+    <insert id="add">
+        insert
+        into tb_user
+        value (null,#{username},#{password},null,null,null,null)
+    </insert>
+    <insert id="manageadd">
+        INSERT INTO tb_user
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="username != null">username,</if>
+            <if test="password != null">password,</if>
+            <if test="phone != null">phone,</if>
+            <if test="email != null">email,</if>
+            <if test="sex != null">sex,</if>
+            <if test="city != null">city,</if>
+        </trim>
+        VALUES
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="username != null">#{username},</if>
+            <if test="password != null">#{password},</if>
+            <if test="phone != null">#{phone},</if>
+            <if test="email != null">#{email},</if>
+            <if test="sex != null">#{sex},</if>
+            <if test="city != null">#{city},</if>
+        </trim>
+    </insert>
+
+
+    <update id="update">
+        update tb_user
+        set username=#{username}, password=#{password}, phone=#{phone}, email=#{email}, sex=#{sex},  city=#{city}
+        where user_id=#{user_id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from tb_user
+        where tb_user.user_id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>

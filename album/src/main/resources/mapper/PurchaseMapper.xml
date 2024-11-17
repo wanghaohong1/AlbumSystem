@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.whh.dao.PurchaseDao">
+    <resultMap id="purchaseview" type="PurchaseView">
+        <result property="user_id" column="user_id"/>
+        <result property="alb_id" column="alb_id"/>
+        <result property="pur_order" column="pur_order"/>
+        <result property="pur_number" column="pur_number"/>
+        <result property="pur_time" column="pur_time"/>
+        <result property="alb_name" column="alb_name"/>
+        <result property="price" column="price"/>
+        <result property="username" column="username"/>
+    </resultMap>
+
+    <select id="selectPurchaseBypageAndCondition" resultMap="purchaseview">
+        select *
+        FROM purchase_album_user
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or purchase_album_user.pur_order like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or purchase_album_user.pur_time like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or purchase_album_user.alb_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or purchase_album_user.username like #{selectImfor}
+            </if>
+        </where>
+        limit #{begin}, #{size}
+    </select>
+
+    <select id="selectTotalCountByCondition" resultType="java.lang.Integer">
+        select count(*)
+        FROM purchase_album_user
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or purchase_album_user.pur_order like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or purchase_album_user.pur_time like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or purchase_album_user.alb_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or purchase_album_user.username like #{selectImfor}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByUserId" resultMap="purchaseview">
+        select *
+        from purchase_album_user
+        where user_id = #{id}
+    </select>
+    <select id="selectByBuy" resultMap="purchaseview">
+        select *
+        from purchase_album_user
+        where alb_id = #{aId} and user_id = #{uId}
+    </select>
+
+</mapper>

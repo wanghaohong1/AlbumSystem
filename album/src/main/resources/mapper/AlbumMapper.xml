@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.whh.dao.AlbumDao">
+    <resultMap id="albumdetails" type="AlbumDetails">
+        <result property="alb_id" column="alb_id"/>
+        <result property="alb_name" column="alb_name"/>
+        <result property="price" column="price"/>
+        <result property="style" column="style"/>
+        <result property="sin_number" column="sin_number"/>
+        <result property="alb_time" column="alb_time"/>
+        <result property="company" column="company"/>
+        <result property="language" column="language"/>
+        <result property="medium" column="medium"/>
+        <result property="summary" column="summary"/>
+        <result property="number" column="number"/>
+        <result property="sin_id" column="sin_id"/>
+        <result property="sin_name" column="sin_name"/>
+    </resultMap>
+
+    <select id="selectAlbumBypageAndCondition" resultMap="albumdetails">
+        select *
+        FROM singer_album_view
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_view.alb_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_view.style like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_view.language like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_view.sin_name like #{selectImfor}
+            </if>
+        </where>
+        limit #{begin}, #{size}
+    </select>
+
+    <select id="selectTotalCountByCondition" resultType="java.lang.Integer">
+        select count(*)
+        FROM singer_album_view
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_view.alb_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_view.style like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_view.language like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_view.sin_name like #{selectImfor}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectById" resultMap="albumdetails">
+        SELECT *
+        FROM singer_album_view
+        WHERE singer_album_view.alb_id = #{id}
+    </select>
+
+    <select id="selectBySingerId" resultMap="albumdetails">
+        SELECT *
+        FROM singer_album_view
+        WHERE singer_album_view.sin_id = #{id}
+    </select>
+
+    <update id="update">
+        update tb_album
+        set alb_name=#{alb_name}, price=#{price}, style=#{style}, sin_number=#{sin_number}, alb_time=#{alb_time}, company=#{company}, language=#{language}, medium=#{medium}, summary=#{summary}, number=#{number}, sin_id=#{sin_id}
+        where tb_album.alb_id=#{alb_id}
+    </update>
+
+    <delete id="deleteByIds">
+        delete from tb_album
+        where tb_album.alb_id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <update id="updateNumber">
+        update tb_album
+        set number = number-#{number}
+        where number >= #{number} and alb_id = #{aId}
+    </update>
+</mapper>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+  <title>用户界面</title>
+  <style>
+    .el-row {
+      margin-bottom: 20px;
+    }
+    .el-col {
+      border-radius: 4px;
+    }
+    .bg-purple-dark {
+      background: #99a9bf;
+    }
+    .bg-purple {
+      background: #d3dce6;
+    }
+    .bg-purple-light {
+      background: #e5e9f2;
+    }
+    .grid-content {
+      border-radius: 4px;
+      min-height: 36px;
+    }
+    .row-bg {
+      padding: 10px 0;
+      background-color: #f9fafc;
+    }
+    .el-header {
+      background-color: #B3C0D1;
+      color: #333;
+      line-height: 60px;
+    }
+    .el-main{
+      height: 160%;
+    }
+    .el-aside {
+      color: #333;
+    }
+    .form-title {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    .nima{
+    }
+    .el-upload-list__item-name{
+      height: 30px !important;
+    }
+    .back{
+      margin-right: 1115px;
+      cursor: pointer;
+    }
+    .back:hover{
+      color: #409EFF;
+    }
+
+  </style>
+</head>
+<body>
+<div id="app">
+  <el-container style="border: 1px solid #eee">
+    <el-aside width="200px" style="background-color: rgb(238, 241, 246); height: 141%!important;">
+      <el-menu :default-openeds="['1']" @select="handleSelect">
+        <el-submenu index="1">
+          <template slot="title"><i class="el-icon-menu"></i>信息管理</template>
+          <el-menu-item-group>
+            <template slot="title">information</template>
+            <el-menu-item index="1" :default-active="true">我的信息</el-menu-item>
+            <el-menu-item index="2">通用设置</el-menu-item>
+            <el-menu-item index="3">安全设置</el-menu-item>
+            <el-menu-item index="4">退出</el-menu-item>
+          </el-menu-item-group>
+        </el-submenu>
+      </el-menu>
+    </el-aside>
+
+    <el-container style="height: calc(100vh - 10px); border: 0;">
+      <el-header style="text-align: right; font-size: 16px; background-color: #d1dbe5!important;">
+        <span class="back" @click="back" style="font-weight: bold;"><i class="el-icon-arrow-left">返回</i></span>
+        <i class="el-icon-setting"></i>
+        <span>个人中心</span>
+      </el-header>
+
+      <el-main v-if="selected === 1">
+        <div>
+          <img :src="circleUrl" style="width: 178px; height: 178px; border-radius: 50%;">
+        </div>
+        <el-descriptions class="margin-top" title="个人信息" :column="3" border style="margin-top: 40px!important;">
+          <template slot="extra">
+            <el-button type="primary" size="small">操作</el-button>
+          </template>
+          <el-descriptions-item>
+            <template slot="label">
+              <i class="el-icon-user"></i>
+              用户名称
+            </template>
+            {{User.username}}
+          </el-descriptions-item>
+          <el-descriptions-item>
+            <template slot="label">
+              <i class="el-icon-view"></i>
+              用户密码
+            </template>
+            {{User.password}}
+          </el-descriptions-item>
+          <el-descriptions-item>
+            <template slot="label">
+              <i class="el-icon-location-outline"></i>
+              省份
+            </template>
+            {{User.province}}
+          </el-descriptions-item>
+          <el-descriptions-item>
+            <template slot="label">
+              <i class="el-icon-mobile-phone"></i>
+              手机号
+            </template>
+            {{User.phone}}
+          </el-descriptions-item>
+          <el-descriptions-item>
+            <template slot="label">
+              <i class="el-icon-message"></i>
+              邮箱
+            </template>
+            {{User.email}}
+          </el-descriptions-item>
+          <el-descriptions-item>
+            <template slot="label">
+              <i :class="bg"></i>
+              性别
+            </template>
+            <el-tag size="small">{{User.sex}}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item>
+            <template slot="label">
+              <i class="el-icon-office-building"></i>
+              联系地址
+            </template>
+            {{User.address}}
+          </el-descriptions-item>
+        </el-descriptions>
+      </el-main>
+
+      <el-main class="nima" style="height: 100%;" v-else-if="selected === 2">
+        <el-form  ref="form" :model="User" label-width="80px">
+          <el-form-item>
+            <h3 class="form-title" style="margin-bottom: 20px; color: #606266;">修改基本资料</h3>
+          </el-form-item>
+          <el-form-item label="头像">
+            <el-upload
+                    class="upload-demo"
+                    list-type="text"
+                    action="/UploadServlet"
+                    :on-preview="handlePreview"
+                    :on-remove="handleRemove"
+                    :on-success="handleSuccess"
+                    :before-remove="beforeRemove"
+                    :limit="1"
+                    :on-exceed="handleExceed">
+              <el-button size="small" type="primary">点击上传</el-button>
+              <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>
+            </el-upload>
+          </el-form-item>
+          <el-form-item label="省份">
+            <el-select v-model="User.province" placeholder="请选择省份区域">
+              <el-option label="北京" value="北京"></el-option>
+              <el-option label="天津" value="天津"></el-option>
+              <el-option label="上海" value="上海"></el-option>
+              <el-option label="重庆" value="重庆"></el-option>
+              <el-option label="河北" value="河北"></el-option>
+              <el-option label="山西" value="山西"></el-option>
+              <el-option label="吉林" value="吉林"></el-option>
+              <el-option label="黑龙江" value="黑龙江"></el-option>
+              <el-option label="江苏" value="江苏"></el-option>
+              <el-option label="浙江" value="浙江"></el-option>
+              <el-option label="安徽" value="安徽"></el-option>
+              <el-option label="福建" value="福建"></el-option>
+              <el-option label="江西" value="江西"></el-option>
+              <el-option label="山东" value="山东"></el-option>
+              <el-option label="河南" value="河南"></el-option>
+              <el-option label="湖北" value="湖北"></el-option>
+              <el-option label="湖南" value="湖南"></el-option>
+              <el-option label="广东" value="广东"></el-option>
+              <el-option label="广西" value="广西"></el-option>
+              <el-option label="海南" value="海南"></el-option>
+              <el-option label="四川" value="四川"></el-option>
+              <el-option label="贵州" value="贵州"></el-option>
+              <el-option label="云南" value="云南"></el-option>
+              <el-option label="陕西" value="陕西"></el-option>
+              <el-option label="甘肃" value="甘肃"></el-option>
+              <el-option label="青海" value="青海"></el-option>
+              <el-option label="内蒙古" value="内蒙古"></el-option>
+              <el-option label="西藏" value="西藏"></el-option>
+              <el-option label="宁夏" value="宁夏"></el-option>
+              <el-option label="新疆" value="新疆"></el-option>
+              <el-option label="台湾" value="台湾"></el-option>
+              <el-option label="香港" value="香港"></el-option>
+              <el-option label="澳门" value="澳门"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="手机号">
+            <el-input v-model="User.phone"></el-input>
+          </el-form-item>
+          <el-form-item label="邮箱">
+            <el-input v-model="User.email"></el-input>
+          </el-form-item>
+          <el-form-item label="性别" style="display: flex; align-items: center;">
+            <el-radio-group v-model="User.sex" style="margin-left: -70px!important;">
+              <el-radio label="男"></el-radio>
+              <el-radio label="女"></el-radio>
+            </el-radio-group>
+          </el-form-item>
+          <el-form-item label="联系地址">
+            <el-input type="textarea" v-model="User.address"></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="onSubmitOne">确认修改</el-button>
+            <el-button>取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-main>
+
+      <el-main v-else-if="selected === 3">
+        <el-form  ref="ruleForm" :model="User" :rules="rules" label-width="80px">
+          <el-form-item>
+            <h3 class="form-title" style="margin-bottom: 20px; color: #606266;">修改安全信息</h3>
+          </el-form-item>
+          <el-form-item label="用户账号" prop="username">
+            <el-input v-model="User.username"></el-input>
+          </el-form-item>
+          <el-form-item label="用户密码" prop="password">
+            <el-input type="password" v-model="User.password" @blur="checkPassword" show-password></el-input>
+          </el-form-item>
+          <el-form-item label="再次输入">
+            <el-input type="password" v-model="textPass" @blur="checkPassword" show-password></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="onSubmit('ruleForm')">确认修改</el-button>
+            <el-button>取消</el-button>
+          </el-form-item>
+        </el-form>
+      </el-main>
+
+      <el-main v-else-if="selected === 4">
+        <el-button type="info" round @click="quit">退出登录</el-button>
+      </el-main>
+    </el-container>
+  </el-container>
+</div>
+
+<script src="../js/axios-0.18.0.js"></script>
+<script src="../js/vue.js"></script>
+<!-- 引入样式 -->
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+<!-- 引入组件库 -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+
+<script>
+  new Vue({
+    el: "#app",
+    created(){
+      this.getSession();
+    },
+    computed: {
+      bg(){
+        if(this.User.sex=="男"){
+          return "el-icon-male"
+        }else{
+          return "el-icon-female"
+        }
+      }
+    },
+    data() {
+      return {
+        size: '',
+        selected: 1, // 绑定的变量，用于控制显示哪个el-container组件
+        User: {},
+        textPass: '',
+        rules: {
+          username: [{ required: true, message: '请输入账号名称', trigger: 'blur' },
+            { min: 3, max: 12, message: '长度在 3 到 12 个字符', trigger: 'blur' }],
+          password: [{ required: true, message: '请输入用户密码', trigger: 'blur' },
+            { min: 3, max: 12, message: '长度在 3 到 12 个字符', trigger: 'blur' }],
+        },
+        avatarFileName: '',
+        PassYes: true,
+        circleUrl: ''
+      }
+    },
+    methods: {
+      getSession(){
+        axios.get("/login/getSession").then(resp => {
+          axios.get("/users/id/"+resp.data.data.id).then((resp)=>{
+            this.User = resp.data.data;
+            this.circleUrl =  this.User.imgs !==''&&this.User.imgs!=null ? '../imgs/head/'+this.User.imgs : 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png';
+            this.textPass = this.User.password;
+          })
+        })
+      },
+      handleSelect(index){
+        this.selected = parseInt(index);
+      },
+      onSubmit(ruleForm) {
+        var _this = this;
+        this.$refs[ruleForm].validate(valid => {
+          if (valid) {
+            // 验证通过，执行修改操作
+            if(_this.PassYes == true){
+              axios.put("/users", this.User).then((resp)=>{
+                if(resp.data.code == "10031"){
+
+                  location.reload(); // 刷新页面
+                }
+              })
+            }else{
+              _this.$message.error('两次输入的密码不一致！');
+              return false;
+            }
+          } else {
+            // 验证失败，停止提交
+            console.log('error submit!!');
+            return false;
+          }
+        });
+      },
+      handleFileChange(event) {
+        const file = event.target.files[0];
+        this.User.file = file;
+      },
+
+      onSubmitOne(){
+        var _this = this;
+        axios.put("/users", this.User).then((resp)=>{
+          if(resp.data.code == "10031"){
+            location.reload(); // 刷新页面
+          }
+        })
+      },
+
+
+      handleRemove(file, fileList) {
+        console.log(file, fileList);
+      },
+      handlePreview(file) {
+        console.log(file);
+      },
+      handleExceed(files, fileList) {
+        this.$message.warning(`当前限制选择 1 个文件，本次以上传了1个文件`);
+      },
+      beforeRemove(file, fileList) {
+        return this.$confirm(`确定移除？`);
+      },
+      handleSuccess(response, file, fileList) {
+        console.log(file, fileList);
+        this.User.imgs = file.name;
+      },
+      checkPassword() {
+        if (this.User.password !== this.textPass) {
+          this.PassYes = false;
+        } else {
+          this.PassYes = true;
+        }
+      },
+      back(){
+        window.location.href = "http://localhost/pages/home.html";
+      },
+      quit(){
+        axios.get("/login/quit").then((resp)=>{
+          window.location.href = "http://localhost/pages/login.html"
+        })
+      }
+    }
+  })
+</script>
+</body>
+</html>

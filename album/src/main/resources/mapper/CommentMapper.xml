@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.whh.dao.CommentDao">
+    <resultMap id="commentview" type="CommentView">
+        <result property="com_id" column="com_id"/>
+        <result property="score" column="score"/>
+        <result property="com_time" column="com_time"/>
+        <result property="content" column="content"/>
+        <result property="user_id" column="user_id"/>
+        <result property="alb_id" column="alb_id"/>
+        <result property="alb_name" column="alb_name"/>
+        <result property="username" column="username"/>
+    </resultMap>
+
+    <select id="selectCommentBypageAndCondition" resultMap="commentview">
+        select *
+        FROM comment_user_album
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or comment_user_album.content like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or comment_user_album.alb_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or comment_user_album.username like #{selectImfor}
+            </if>
+        </where>
+        limit #{begin}, #{size}
+    </select>
+
+    <select id="selectTotalCountByCondition" resultType="java.lang.Integer">
+        select count(*)
+        FROM comment_user_album
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or comment_user_album.content like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or comment_user_album.alb_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or comment_user_album.username like #{selectImfor}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByUserId" resultMap="commentview">
+        select *
+        from comment_user_album
+        where comment_user_album.user_id = #{id}
+    </select>
+
+    <insert id="addComment">
+        insert
+        into tb_comment
+            value(null, #{score}, #{com_time}, #{content}, #{user_id}, #{alb_id})
+    </insert>
+
+    <delete id="deleteComment">
+        delete
+        from tb_comment
+        where tb_comment.com_id = #{id}
+    </delete>
+
+    <delete id="deleteByIds">
+        delete from tb_comment
+        where tb_comment.com_id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+    <update id="update">
+        update tb_comment
+        set score = #{son_name}, com_time = #{com_time}, content = #{content}
+        where com_id=#{com_id}
+    </update>
+</mapper>

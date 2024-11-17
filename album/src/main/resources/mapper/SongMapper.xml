@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.whh.dao.SongDao">
+    <resultMap id="songDetails" type="songDetails">
+        <result property="sin_id" column="sin_id"/>
+        <result property="sin_name" column="sin_name"/>
+        <result property="son_id" column="son_id"/>
+        <result property="alb_id" column="alb_id"/>
+        <result property="alb_name" column="alb_name"/>
+        <result property="duration" column="duration"/>
+        <result property="son_name" column="son_name"/>
+    </resultMap>
+    
+    <update id="update">
+        update tb_song
+        set son_name = #{son_name}, duration = #{duration}, alb_id = #{alb_id}
+        where son_id=#{son_id}
+    </update>
+
+    <select id="selectSongBypageAndCondition" resultMap="songDetails">
+        select *
+        from singer_album_song_view
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_song_view.son_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_song_view.alb_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_song_view.sin_name like #{selectImfor}
+            </if>
+        </where>
+        limit #{begin}, #{size}
+    </select>
+
+    <select id="selectTotalCountByCondition" resultType="java.lang.Integer">
+        select count(*)
+        from singer_album_song_view
+        <where>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_song_view.son_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_song_view.alb_name like #{selectImfor}
+            </if>
+            <if test="selectImfor != null and selectImfor != ''">
+                or singer_album_song_view.sin_name like #{selectImfor}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectBySingerId" resultMap="songDetails">
+        select *
+        from singer_album_song_view
+        where singer_album_song_view.sin_id = #{id}
+    </select>
+
+    <select id="selectByAlbumId" resultMap="songDetails">
+        select *
+        from singer_album_song_view
+        where singer_album_song_view.alb_id = #{id}
+    </select>
+
+    <select id="selectSongById" resultMap="songDetails">
+        select *
+        from singer_album_song_view
+        where singer_album_song_view.son_id = #{id}
+    </select>
+
+
+    <select id="selectAll"  resultMap="songDetails">
+        select *
+        from singer_album_song_view
+    </select>
+
+    <select id="selectByIds" resultMap="songDetails">
+        select *
+        from singer_album_song_view
+        where singer_album_song_view.son_id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectTotalCountByUserId" resultType="java.lang.Integer">
+        select count(*)
+        from comment_user_album
+        where comment_user_album.user_id = #{id}
+    </select>
+
+
+    <delete id="deleteByIds">
+        delete from tb_song
+        where tb_song.son_id in
+        <foreach collection="ids" item="id" separator="," open="(" close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+
+</mapper>

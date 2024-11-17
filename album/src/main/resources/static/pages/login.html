@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>登录</title>
+    <link href="../css/login.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+      .check {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 20px;
+      }
+      .check .is-checked .el-radio__inner {
+        background-color: orange !important;
+        border-color: orange !important;
+      }
+      .check .is-checked .el-radio__label{
+        color: orange !important;
+      }
+
+    </style>
+</head>
+<body>
+
+<div id="loginDiv">
+  <form method="post">
+    <h1 id="loginMsg">LOGIN IN</h1>
+    <div>
+      <span style="display:flex; margin-left: 25%; color: red">{{errorMsg}}</span>
+    </div>
+    <div class="check">
+      <template>
+        <el-radio name="radio" v-model="radio" value="1" label="1">用户登录</el-radio>
+        <el-radio name="radio" v-model="radio" value="2" label="2">系统管理员</el-radio>
+        <el-radio name="radio" v-model="radio" value="3" label="3">专辑管理员</el-radio>
+      </template>
+    </div>
+    <p>
+      <label for="username">Username:</label>
+      <input id="username" name="username" type="text" v-model="userdata.username" style="width: 200px;" required>
+      <span style="color: red;">*</span>
+    </p>
+    <p>
+      <label for="password">Password :</label>
+      <input id="password" name="password" v-bind:type="passwordType" v-model="userdata.password" show-password v-bind:class="{ 'show-password': showPassword }" required>
+      <span style="color: red;">*</span>
+      <i class="fa fa-eye password-icon" aria-hidden="true" v-on:click="togglePassword" style="display: flex; margin-left: 275px; margin-top: -24px"></i>
+    </p>
+    <p>记住我:<input class="remember-checkbox" id="remember" v-model="remember" type="checkbox" value="1"></p>
+    <div id="subDiv">
+      <el-button type="primary" class="login-btn1" @click="login">login up</el-button>
+      <el-button type="reset" class="login-btn2" @click="reset">reset</el-button>
+      <a href="register.html">没有账号？点击注册</a>
+    </div>
+  </form>
+
+</div>
+
+<script src="../js/axios-0.18.0.js"></script>
+<script src="../js/vue.js"></script>
+<script src="../element-ui/lib/index.js"></script>
+<link rel="stylesheet" href="../element-ui/lib/theme-chalk/index.css">
+
+<script>
+  new Vue({
+    el: "#loginDiv",
+    components: {
+      // 添加 Element UI 组件
+      'el-button': ELEMENT.Button,
+      'el-message': ELEMENT.Message
+    },
+    data(){
+      return{
+        errorMsg:'',
+        radio: this.getCookie('value') !== '' ? this.getCookie('value') : '1',
+        checked: false,
+        remember: this.getCookie('remember') !=='' ? this.getCookie('remember') : false,
+
+        //cookie使用的用户名和密码
+        name:'',
+        pass:'',
+        //用户在登录界面输入的数据，包括名字和密码
+        userdata:{
+          username: this.getCookie('username'),
+          password: this.getCookie('password'),
+        },
+        passwordType: 'password', // 密码输入框的类型，默认为password
+        showPassword: false // 是否显示密码图标，默认为false
+      }
+    },
+    methods:{
+      getCookie(name) {
+        var allCookies = document.cookie;
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+          var cookie = cookies[i].trim();
+          if (cookie.startsWith(name + '=')) {
+            return cookie.substring(name.length + 1);
+          }
+        }
+        return '';
+      },
+      //用户点击取下按钮
+      reset(){
+        this.userdata.password='';
+        this.userdata.username='';
+        this.checked=false;
+      },
+
+      // 切换密码输入框的类型和是否显示密码图标
+      togglePassword(){
+        this.showPassword = !this.showPassword;
+        this.passwordType = this.showPassword ? 'text' : 'password';
+      },
+      login(){
+        if(this.userdata.username==''||this.password==''){
+          this.$message({
+            message: '请完整填写登录信息！',
+            type: 'warning'
+          });
+        }else{
+          axios.get("/login/"+this.userdata.username+"/"+this.userdata.password+"/"+this.remember+"/"+this.radio).then((resp)=>{
+            if(resp.data.code==10041){
+              if(this.radio==1){
+                window.location.href = 'http://localhost/pages/Umanage.html';
+              }else if(this.radio==2){
+                window.location.href = 'http://localhost/pages/manage.html';
+              }else{
+                window.location.href = 'http://localhost/pages/Amanage.html';
+              }
+            }else {
+              this.errorMsg = resp.data.msg;
+            }
+          })
+        }
+      }
+    },
+  })
+</script>
+
+</body>
+</html>
